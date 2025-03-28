@@ -1,68 +1,10 @@
 
 import React, { useState } from "react";
-import { PlusCircle, Edit, Trash2, FileText, Video, Library } from "lucide-react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
 import { StudyCardProps } from "@/components/StudyCard";
-
-// Esquema de validação do formulário
-const formSchema = z.object({
-  title: z.string().min(3, {
-    message: "O título deve ter pelo menos 3 caracteres",
-  }),
-  type: z.enum(["article", "video", "document"], {
-    required_error: "Selecione um tipo de conteúdo",
-  }),
-  thumbnail: z.string().url({
-    message: "Por favor, insira uma URL válida para a miniatura",
-  }),
-  excerpt: z.string().min(10, {
-    message: "O resumo deve ter pelo menos 10 caracteres",
-  }),
-  link: z.string().url({
-    message: "Por favor, insira uma URL válida para o conteúdo",
-  }),
-});
+import { AcervoFormValues } from "@/components/admin/acervo/AcervoForm";
+import { AcervoItemCard } from "@/components/admin/acervo/AcervoItemCard";
+import { AcervoDialog } from "@/components/admin/acervo/AcervoDialog";
 
 const AdminAcervoPage = () => {
   const { toast } = useToast();
@@ -98,18 +40,7 @@ const AdminAcervoPage = () => {
     },
   ]);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: "",
-      type: "article",
-      thumbnail: "",
-      excerpt: "",
-      link: "",
-    },
-  });
-
-  const handleAddItem = (values: z.infer<typeof formSchema>) => {
+  const handleAddItem = (values: AcervoFormValues) => {
     if (isEditing && editingId !== null) {
       // Atualizar item existente
       setAcervoItems(prev => 
@@ -148,24 +79,12 @@ const AdminAcervoPage = () => {
     }
     
     // Resetar estado e fechar dialog
-    form.reset();
-    setIsEditing(false);
-    setEditingId(null);
-    setIsDialogOpen(false);
+    resetAndCloseDialog();
   };
 
   const handleEditItem = (item: StudyCardProps) => {
     setIsEditing(true);
     setEditingId(item.id);
-    
-    // Preencher formulário com dados do item
-    form.reset({
-      title: item.title,
-      type: item.type,
-      thumbnail: item.thumbnail,
-      excerpt: item.excerpt,
-      link: item.link,
-    });
     
     setIsDialogOpen(true);
   };
@@ -181,33 +100,15 @@ const AdminAcervoPage = () => {
   };
 
   const resetAndCloseDialog = () => {
-    form.reset();
     setIsEditing(false);
     setEditingId(null);
     setIsDialogOpen(false);
   };
 
-  const TypeIcon = ({ type }: { type: "article" | "video" | "document" }) => {
-    switch (type) {
-      case "article":
-        return <FileText className="h-4 w-4 text-primary" />;
-      case "video":
-        return <Video className="h-4 w-4 text-blue-500" />;
-      case "document":
-        return <Library className="h-4 w-4 text-orange-500" />;
-    }
-  };
-
-  const getTypeLabel = (type: "article" | "video" | "document") => {
-    switch (type) {
-      case "article":
-        return "Artigo";
-      case "video":
-        return "Vídeo";
-      case "document":
-        return "Documento";
-    }
-  };
+  // Get current item being edited (for form default values)
+  const currentItem = isEditing && editingId 
+    ? acervoItems.find(item => item.id === editingId) 
+    : undefined;
 
   return (
     <div className="space-y-6">
@@ -218,166 +119,24 @@ const AdminAcervoPage = () => {
             Gerencie o conteúdo do acervo de estudos disponível para os usuários.
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => {
-              form.reset();
-              setIsEditing(false);
-              setEditingId(null);
-            }}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Adicionar Conteúdo
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>
-                {isEditing ? "Editar Conteúdo" : "Adicionar Novo Conteúdo"}
-              </DialogTitle>
-              <DialogDescription>
-                Preencha os detalhes do conteúdo que deseja {isEditing ? "atualizar" : "adicionar"} ao acervo.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleAddItem)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Título</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Título do conteúdo" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Conteúdo</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um tipo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="article">Artigo</SelectItem>
-                          <SelectItem value="video">Vídeo</SelectItem>
-                          <SelectItem value="document">Documento</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="thumbnail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL da Miniatura</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/image.jpg" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        URL de uma imagem para representar o conteúdo
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="excerpt"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Resumo</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Breve descrição do conteúdo" 
-                          className="resize-none"
-                          rows={3}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="link"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Link do Conteúdo</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/content" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        URL para o artigo, vídeo ou documento completo
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={resetAndCloseDialog}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit">
-                    {isEditing ? "Atualizar" : "Adicionar"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+        <AcervoDialog
+          isOpen={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          onSubmit={handleAddItem}
+          onCancel={resetAndCloseDialog}
+          isEditing={isEditing}
+          defaultValues={currentItem}
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {acervoItems.map((item) => (
-          <Card key={item.id} className="overflow-hidden">
-            <div className="h-40 overflow-hidden">
-              <img 
-                src={item.thumbnail} 
-                alt={item.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <TypeIcon type={item.type} />
-                <CardDescription>{getTypeLabel(item.type)}</CardDescription>
-              </div>
-              <CardTitle className="line-clamp-1 text-lg">{item.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground line-clamp-2">{item.excerpt}</p>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" size="sm" onClick={() => handleEditItem(item)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Editar
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => handleDeleteItem(item.id)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Excluir
-              </Button>
-            </CardFooter>
-          </Card>
+          <AcervoItemCard 
+            key={item.id} 
+            item={item} 
+            onEdit={handleEditItem} 
+            onDelete={handleDeleteItem} 
+          />
         ))}
       </div>
     </div>
