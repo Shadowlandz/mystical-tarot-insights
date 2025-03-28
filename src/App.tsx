@@ -23,7 +23,7 @@ const App = () => (
           <Route path="/tarot" element={<TarotPage />} />
           <Route path="/acervo" element={<AcervoPage />} />
           <Route path="/sobre" element={<SobrePage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          {/* ADICIONE TODAS AS ROTAS PERSONALIZADAS ACIMA DA ROTA CURINGA "*" */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -32,7 +32,7 @@ const AcervoPage = () => {
           <header className="text-center mb-12">
             <h1 className="text-3xl md:text-4xl font-mystical text-accent mb-4">Acervo de Estudos</h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Explore nossa coleção de artigos, documentos e vídeos sobre tarot, símbolos místicos e práticas espirituais.
+              Explore nossa coleção de artigos, documentos e vídeos sobre tarô, símbolos místicos e práticas espirituais.
             </p>
           </header>
           
@@ -86,7 +86,7 @@ const AcervoPage = () => {
                     key={study.id}
                     id={study.id}
                     title={study.title}
-                    type={study.type}
+                    type={study.type as "article" | "video" | "document"}
                     thumbnail={study.thumbnail}
                     excerpt={study.excerpt}
                     link={study.link}

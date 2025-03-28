@@ -52,7 +52,7 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
     <div className="w-full">
       {!isReadingGenerated ? (
         <div className="flex flex-col items-center space-y-6 animate-fade-in">
-          <h2 className="text-2xl font-mystical text-accent text-glow">Tiragem de Tarot</h2>
+          <h2 className="text-2xl font-mystical text-accent text-glow">Tiragem de Tarô</h2>
           <p className="text-muted-foreground text-center max-w-md">
             Concentre-se em sua pergunta ou situação enquanto prepara-se para a tiragem de {cardCount} {cardCount === 1 ? 'carta' : 'cartas'}.
           </p>

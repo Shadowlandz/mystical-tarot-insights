@@ -12,7 +12,7 @@ export default function NavBar() {
     <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/80 border-b border-border">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
-          <span className="text-xl font-mystical font-bold text-accent text-glow">Mystical Tarot</span>
+          <span className="text-xl font-mystical font-bold text-accent text-glow">Mystical Tarô</span>
         </Link>
         
         <div className="hidden md:flex items-center space-x-6">

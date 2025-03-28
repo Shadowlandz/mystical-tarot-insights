@@ -9,9 +9,9 @@ export default function Footer() {
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-xl font-mystical text-accent mb-4">Mystical Tarot Insights</h3>
+            <h3 className="text-xl font-mystical text-accent mb-4">Mystical Tarô Insights</h3>
             <p className="text-muted-foreground">
-              Explore o mundo místico do tarot com orientação intuitiva e estudos aprofundados.
+              Explore o mundo místico do tarô com orientação intuitiva e estudos aprofundados.
             </p>
           </div>
           
@@ -20,7 +20,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link to="/tarot" className="text-foreground hover:text-accent transition-colors duration-200">
-                  Tiragem de Tarot
+                  Tiragem de Tarô
                 </Link>
               </li>
               <li>
@@ -48,7 +48,7 @@ export default function Footer() {
         </div>
         
         <div className="mt-8 pt-4 border-t border-border text-center text-sm text-muted-foreground">
-          <p>&copy; {currentYear} Mystical Tarot Insights. Todos os direitos reservados.</p>
+          <p>&copy; {currentYear} Mystical Tarô Insights. Todos os direitos reservados.</p>
         </div>
       </div>
     </footer>

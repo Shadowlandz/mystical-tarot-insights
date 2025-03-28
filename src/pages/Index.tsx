@@ -43,12 +43,12 @@ const Index = () => {
             Mystical Tarot Insights
           </h1>
           <p className="text-lg md:text-xl text-foreground/90 max-w-2xl mb-8">
-            Explore o mundo místico do tarot com orientações intuitivas e interpretações profundas. Descubra os segredos que as cartas revelam sobre seu caminho.
+            Explore o mundo místico do tarô com orientações intuitivas e interpretações profundas. Descubra os segredos que as cartas revelam sobre seu caminho.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 mt-2">
             <Button asChild size="lg" className="bg-primary hover:bg-primary/80 text-primary-foreground font-mystical">
-              <Link to="/tarot">Iniciar Tiragem de Tarot</Link>
+              <Link to="/tarot">Iniciar Tiragem de Tarô</Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="border-primary/30 hover:bg-primary/10 text-foreground font-mystical">
               <Link to="/acervo">Explorar Acervo de Estudos</Link>
@@ -77,7 +77,7 @@ const Index = () => {
       <section className="py-16 px-4 bg-gradient-to-b from-background to-secondary/5">
         <div className="container mx-auto">
           <h2 className="text-3xl font-mystical text-accent text-center mb-12">
-            Descubra o Poder do Tarot
+            Descubra o Poder do Tarô
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -97,7 +97,7 @@ const Index = () => {
               </div>
               <h3 className="text-xl font-mystical text-accent mb-3">Acervo de Estudos</h3>
               <p className="text-muted-foreground">
-                Acesse artigos, documentos e vídeos sobre tarot, simbolismo esotérico e práticas espirituais.
+                Acesse artigos, documentos e vídeos sobre tarô, simbolismo esotérico e práticas espirituais.
               </p>
             </div>
             
@@ -130,7 +130,7 @@ const Index = () => {
                 key={study.id}
                 id={study.id}
                 title={study.title}
-                type={study.type}
+                type={study.type as "article" | "video" | "document"}
                 thumbnail={study.thumbnail}
                 excerpt={study.excerpt}
                 link={study.link}
@@ -147,7 +147,7 @@ const Index = () => {
             Comece Sua Jornada Mística
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-            Embarque em uma jornada de autodescoberta e iluminação através do poder ancestral do tarot.
+            Embarque em uma jornada de autodescoberta e iluminação através do poder ancestral do tarô.
           </p>
           <Button asChild size="lg" className="bg-primary hover:bg-primary/80 text-primary-foreground font-mystical">
             <Link to="/tarot">Fazer Minha Primeira Tiragem</Link>

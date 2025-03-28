@@ -20,6 +20,12 @@ export default function StudyCard({ id, title, type, thumbnail, excerpt, link, c
     document: "📚"
   };
   
+  const typeLabels = {
+    article: "Artigo",
+    video: "Vídeo",
+    document: "Documento"
+  };
+  
   return (
     <div className={cn("mystic-card group h-full flex flex-col", className)}>
       <div className="relative h-40 overflow-hidden">
@@ -29,7 +35,7 @@ export default function StudyCard({ id, title, type, thumbnail, excerpt, link, c
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         <div className="absolute top-2 right-2 bg-card/80 backdrop-blur-sm text-accent px-2 py-1 rounded text-xs font-medium">
-          {typeIcons[type]} {type === "article" ? "Artigo" : type === "video" ? "Vídeo" : "Documento"}
+          {typeIcons[type]} {typeLabels[type]}
         </div>
       </div>
       

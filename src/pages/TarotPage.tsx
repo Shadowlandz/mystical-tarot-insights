@@ -16,7 +16,7 @@ const TarotPage = () => {
       <main className="flex-1 pt-24 pb-16 px-4">
         <div className="container mx-auto">
           <header className="text-center mb-12">
-            <h1 className="text-3xl md:text-4xl font-mystical text-accent mb-4">Tiragem de Tarot</h1>
+            <h1 className="text-3xl md:text-4xl font-mystical text-accent mb-4">Tiragem de Tarô</h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Escolha o tipo de tiragem que deseja realizar. Concentre-se em sua pergunta ou situação enquanto as cartas são sorteadas.
             </p>
@@ -88,7 +88,7 @@ const TarotPage = () => {
               <li>• Encontre um local tranquilo e livre de distrações.</li>
               <li>• Respire profundamente e concentre-se em sua pergunta.</li>
               <li>• Mantenha uma mente aberta às mensagens que as cartas trazem.</li>
-              <li>• Lembre-se que o tarot é uma ferramenta para reflexão e autoconhecimento.</li>
+              <li>• Lembre-se que o tarô é uma ferramenta para reflexão e autoconhecimento.</li>
               <li>• Confie em sua intuição ao interpretar os significados.</li>
             </ul>
           </div>
