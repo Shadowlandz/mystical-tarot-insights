@@ -10,6 +10,14 @@ import AcervoPage from "./pages/AcervoPage";
 import SobrePage from "./pages/SobrePage";
 import NotFound from "./pages/NotFound";
 
+// Admin Pages
+import AdminLoginPage from "./pages/AdminLoginPage";
+import AdminLayout from "./components/AdminLayout";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminAcervoPage from "./pages/AdminAcervoPage";
+import AdminGeminiPage from "./pages/AdminGeminiPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -19,11 +27,26 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Rotas do site público */}
           <Route path="/" element={<Index />} />
           <Route path="/tarot" element={<TarotPage />} />
           <Route path="/acervo" element={<AcervoPage />} />
           <Route path="/sobre" element={<SobrePage />} />
-          {/* ADICIONE TODAS AS ROTAS PERSONALIZADAS ACIMA DA ROTA CURINGA "*" */}
+          
+          {/* Rotas administrativas */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={
+            <AdminProtectedRoute>
+              <AdminLayout />
+            </AdminProtectedRoute>
+          }>
+            <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="acervo" element={<AdminAcervoPage />} />
+            <Route path="gemini" element={<AdminGeminiPage />} />
+            {/* Adicione mais rotas administrativas aqui */}
+          </Route>
+          
+          {/* Rota curinga para páginas não encontradas */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
