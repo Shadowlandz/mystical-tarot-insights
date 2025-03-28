@@ -115,7 +115,14 @@ const AdminAcervoPage = () => {
       setAcervoItems(prev => 
         prev.map(item => 
           item.id === editingId 
-            ? { ...item, ...values } 
+            ? { 
+                id: item.id,
+                title: values.title,
+                type: values.type,
+                thumbnail: values.thumbnail,
+                excerpt: values.excerpt,
+                link: values.link
+              } 
             : item
         )
       );
@@ -124,10 +131,14 @@ const AdminAcervoPage = () => {
         description: "O item do acervo foi atualizado com sucesso",
       });
     } else {
-      // Adicionar novo item
+      // Adicionar novo item - garantir que todas as propriedades são fornecidas
       const newItem: StudyCardProps = {
         id: Math.max(0, ...acervoItems.map(item => item.id)) + 1,
-        ...values,
+        title: values.title,
+        type: values.type,
+        thumbnail: values.thumbnail,
+        excerpt: values.excerpt,
+        link: values.link
       };
       setAcervoItems(prev => [...prev, newItem]);
       toast({
