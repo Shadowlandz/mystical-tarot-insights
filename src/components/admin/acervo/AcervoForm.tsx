@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { getVideoThumbnail } from "@/utils/videoUtils";
+import { getVideoThumbnail, isVideoUrl } from "@/utils/videoUtils";
 
 // Form validation schema
 export const acervoFormSchema = z.object({
@@ -73,7 +73,7 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
 
   // Detectar thumbnail automaticamente quando for um vídeo
   useEffect(() => {
-    if (type === "video" && link && (!currentThumbnail || currentThumbnail === "")) {
+    if (type === "video" && link && isVideoUrl(link) && (!currentThumbnail || currentThumbnail === "")) {
       const thumbnail = getVideoThumbnail(link);
       if (thumbnail) {
         form.setValue("thumbnail", thumbnail, { shouldValidate: true });

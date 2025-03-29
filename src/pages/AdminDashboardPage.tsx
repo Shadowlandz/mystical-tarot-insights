@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { ContentCatalogTable } from "@/components/admin/dashboard/ContentCatalogTable";
+import { StudyCardProps } from "@/components/StudyCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminDashboardPage = () => {
   const [stats, setStats] = useState({
@@ -30,10 +33,54 @@ const AdminDashboardPage = () => {
     ]
   });
 
+  // Simulando itens do acervo para o dashboard
+  const [acervoItems, setAcervoItems] = useState<StudyCardProps[]>([]);
+
   useEffect(() => {
-    // Aqui você faria uma chamada API para buscar as estatísticas reais
-    // Por enquanto, usamos dados estáticos para demonstração
+    // Aqui você faria uma chamada API para buscar os dados do acervo
+    // Por enquanto, estamos usando dados de exemplo armazenados em localStorage
+    
+    const storedItems = localStorage.getItem('acervoItems');
+    if (storedItems) {
+      try {
+        const parsedItems = JSON.parse(storedItems);
+        setAcervoItems(parsedItems);
+        
+        // Atualiza as estatísticas com base nos itens carregados
+        updateStats(parsedItems);
+      } catch (e) {
+        console.error("Erro ao carregar itens do acervo:", e);
+      }
+    }
   }, []);
+
+  const updateStats = (items: StudyCardProps[]) => {
+    const articlesCount = items.filter(item => item.type === 'article').length;
+    const videosCount = items.filter(item => item.type === 'video').length;
+    const docsCount = items.filter(item => item.type === 'document').length;
+    
+    const totalViews = items.reduce((total, item) => total + (item.views || 0), 0);
+    
+    // Organiza os itens mais vistos
+    const mostViewed = [...items]
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 4)
+      .map(item => ({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        views: item.views || 0
+      }));
+    
+    setStats(prev => ({
+      ...prev,
+      totalArticles: articlesCount,
+      totalVideos: videosCount,
+      documentsCount: docsCount,
+      totalViews: totalViews,
+      recentActivity: mostViewed
+    }));
+  };
 
   const StatCard = ({ title, value, icon: Icon, trend, description }: any) => (
     <Card>
@@ -163,6 +210,36 @@ const AdminDashboardPage = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      <div>
+        <Tabs defaultValue="all">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-semibold mb-2">Catálogo de Conteúdo</h3>
+            <TabsList>
+              <TabsTrigger value="all">Todos</TabsTrigger>
+              <TabsTrigger value="articles">Artigos</TabsTrigger>
+              <TabsTrigger value="videos">Vídeos</TabsTrigger>
+              <TabsTrigger value="documents">Documentos</TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <TabsContent value="all">
+            <ContentCatalogTable items={acervoItems} />
+          </TabsContent>
+          
+          <TabsContent value="articles">
+            <ContentCatalogTable items={acervoItems.filter(item => item.type === 'article')} />
+          </TabsContent>
+          
+          <TabsContent value="videos">
+            <ContentCatalogTable items={acervoItems.filter(item => item.type === 'video')} />
+          </TabsContent>
+          
+          <TabsContent value="documents">
+            <ContentCatalogTable items={acervoItems.filter(item => item.type === 'document')} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
