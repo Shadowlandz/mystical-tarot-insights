@@ -1,5 +1,5 @@
 
-import { Edit, Trash2, FileText, Video, Library, Eye, Calendar } from "lucide-react";
+import { Edit, Trash2, Eye, Calendar } from "lucide-react";
 import { useState } from "react";
 import { StudyCardProps } from "@/components/StudyCard";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { getTypeIcon, getTypeLabel } from "@/components/admin/acervo/AcervoTypeUtils";
 
 interface AcervoItemCardProps {
   item: StudyCardProps;
@@ -26,32 +27,6 @@ interface AcervoItemCardProps {
 
 export function AcervoItemCard({ item, onEdit, onDelete, onPreview }: AcervoItemCardProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-
-  const TypeIcon = ({ type }: { type: string }) => {
-    switch (type) {
-      case "article":
-        return <FileText className="h-4 w-4 text-primary" />;
-      case "video":
-        return <Video className="h-4 w-4 text-blue-500" />;
-      case "document":
-        return <Library className="h-4 w-4 text-orange-500" />;
-      default:
-        return <FileText className="h-4 w-4" />;
-    }
-  };
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "article":
-        return "Artigo";
-      case "video":
-        return "Vídeo";
-      case "document":
-        return "Documento";
-      default:
-        return type;
-    }
-  };
   
   const formatCreatedAt = (date: string | undefined) => {
     if (!date) return "Data desconhecida";
@@ -97,7 +72,7 @@ export function AcervoItemCard({ item, onEdit, onDelete, onPreview }: AcervoItem
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <TypeIcon type={item.type} />
+            {getTypeIcon(item.type)}
             <CardDescription>{getTypeLabel(item.type)}</CardDescription>
           </div>
           {item.views !== undefined && (
