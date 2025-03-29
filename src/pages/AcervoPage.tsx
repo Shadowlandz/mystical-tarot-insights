@@ -1,10 +1,14 @@
+
 import { useState, useEffect } from "react";
-import { Container } from "@radix-ui/themes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { StudyCard, StudyCardProps } from "@/components/StudyCard";
+import { Button } from "@/components/ui/button";
+import StudyCard, { StudyCardProps } from "@/components/StudyCard";
 import { supabase } from "@/integrations/supabase/client";
 import { convertArrayToStudyCardProps } from "@/types/acervo";
+import NavBar from "@/components/NavBar";
+import Footer from "@/components/Footer";
+import { Search } from "lucide-react";
 
 const AcervoPage = () => {
   const [items, setItems] = useState<StudyCardProps[]>([]);

@@ -1,6 +1,6 @@
 
 import { PlusCircle } from "lucide-react";
-import { AcervoFormValues } from "./AcervoForm";
+import { StudyCardProps } from "@/components/StudyCard";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,33 +10,38 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AcervoForm } from "./AcervoForm";
+import { AcervoForm, AcervoFormValues } from "./AcervoForm";
 
 interface AcervoDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  setOpen: (open: boolean) => void;
   onSubmit: (values: AcervoFormValues) => void;
-  onCancel: () => void;
-  isEditing: boolean;
-  defaultValues?: AcervoFormValues;
+  item?: StudyCardProps;
 }
 
 export function AcervoDialog({
-  isOpen,
-  onOpenChange,
+  open,
+  setOpen,
   onSubmit,
-  onCancel,
-  isEditing,
-  defaultValues,
+  item
 }: AcervoDialogProps) {
+  // Convert StudyCardProps to AcervoFormValues if needed
+  const defaultValues = item ? {
+    title: item.title,
+    type: item.type,
+    thumbnail: item.thumbnail,
+    excerpt: item.excerpt,
+    link: item.link,
+  } : undefined;
+
+  const isEditing = !!item;
+
+  const handleCancel = () => {
+    setOpen(false);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Adicionar Conteúdo
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
@@ -49,7 +54,7 @@ export function AcervoDialog({
         <AcervoForm 
           defaultValues={defaultValues}
           onSubmit={onSubmit}
-          onCancel={onCancel}
+          onCancel={handleCancel}
           isEditing={isEditing}
         />
       </DialogContent>
