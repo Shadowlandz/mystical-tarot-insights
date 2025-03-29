@@ -1,65 +1,68 @@
-
 import { useState, useEffect } from "react";
-import NavBar from "@/components/NavBar";
-import Footer from "@/components/Footer";
-import StudyCard from "@/components/StudyCard";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Container } from "@radix-ui/themes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { StudyCard, StudyCardProps } from "@/components/StudyCard";
 import { supabase } from "@/integrations/supabase/client";
-import { StudyCardProps } from "@/components/StudyCard";
+import { convertArrayToStudyCardProps } from "@/types/acervo";
 
 const AcervoPage = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
-  const [acervoItems, setAcervoItems] = useState<StudyCardProps[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Fetch data from Supabase
+  const [items, setItems] = useState<StudyCardProps[]>([]);
+  const [filteredItems, setFilteredItems] = useState<StudyCardProps[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
+
   useEffect(() => {
+    const fetchAcervoItems = async () => {
+      setLoading(true);
+      
+      try {
+        const { data, error } = await supabase
+          .from('acervo_items')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        const convertedData = convertArrayToStudyCardProps(data || []);
+        setItems(convertedData);
+        setFilteredItems(convertedData);
+      } catch (error) {
+        console.error('Error fetching acervo items:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     fetchAcervoItems();
   }, []);
-  
-  const fetchAcervoItems = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('acervo_items')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error("Error fetching acervo items:", error);
-        return;
-      }
-      
-      if (data) {
-        // Convert Supabase UUID to number ID for compatibility with existing components
-        const formattedData = data.map(item => ({
-          ...item,
-          id: parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || Math.floor(Math.random() * 10000),
-        }));
-        
-        setAcervoItems(formattedData);
-      }
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setIsLoading(false);
+
+  useEffect(() => {
+    let result = [...items];
+    
+    if (activeCategory !== "all") {
+      result = result.filter(item => item.type === activeCategory);
     }
+    
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        item => 
+          item.title.toLowerCase().includes(query) || 
+          item.excerpt.toLowerCase().includes(query)
+      );
+    }
+    
+    setFilteredItems(result);
+  }, [activeCategory, searchQuery, items]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
   };
-  
-  // Filtragem dos estudos com base na pesquisa e na tab ativa
-  const filteredStudies = acervoItems.filter((study) => {
-    const matchesSearch = study.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         study.excerpt.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesTab = activeTab === "all" || study.type === activeTab;
-    
-    return matchesSearch && matchesTab;
-  });
-  
+
   return (
     <div className="min-h-screen flex flex-col bg-background bg-stars">
       <NavBar />
@@ -80,14 +83,14 @@ const AcervoPage = () => {
                 type="text"
                 placeholder="Buscar por título ou conteúdo..."
                 className="pl-10 bg-background border-primary/30 focus-visible:ring-primary"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchQuery}
+                onChange={handleSearch}
               />
             </div>
           </div>
           
           <div className="max-w-5xl mx-auto">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-8">
+            <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full mb-8">
               <TabsList className="grid grid-cols-4">
                 <TabsTrigger 
                   value="all" 
@@ -116,13 +119,13 @@ const AcervoPage = () => {
               </TabsList>
             </Tabs>
             
-            {isLoading ? (
+            {loading ? (
               <div className="flex justify-center py-12">
                 <p className="text-muted-foreground">Carregando itens do acervo...</p>
               </div>
-            ) : filteredStudies.length > 0 ? (
+            ) : filteredItems.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredStudies.map((study) => (
+                {filteredItems.map((study) => (
                   <StudyCard
                     key={study.id}
                     id={study.id}
@@ -140,8 +143,8 @@ const AcervoPage = () => {
                 <Button 
                   variant="outline" 
                   onClick={() => {
-                    setSearchTerm("");
-                    setActiveTab("all");
+                    setSearchQuery("");
+                    setActiveCategory("all");
                   }}
                   className="border-primary/30 hover:bg-primary/10"
                 >
@@ -150,7 +153,6 @@ const AcervoPage = () => {
               </div>
             )}
             
-            {/* Paginação (para futuras implementações) */}
             <div className="mt-12 flex justify-center">
               <Button variant="outline" className="border-primary/30 hover:bg-primary/10" disabled>
                 Carregar Mais

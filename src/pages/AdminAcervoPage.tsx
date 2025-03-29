@@ -1,63 +1,64 @@
-
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Plus, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { StudyCardProps } from "@/components/StudyCard";
-import { AcervoFormValues } from "@/components/admin/acervo/AcervoForm";
 import { AcervoItemCard } from "@/components/admin/acervo/AcervoItemCard";
 import { AcervoDialog } from "@/components/admin/acervo/AcervoDialog";
-import { useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, Info } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { StudyCardProps } from "@/components/StudyCard";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { convertArrayToStudyCardProps, convertToStudyCardProps, SupabaseAcervoItem } from "@/types/acervo";
 
 const AdminAcervoPage = () => {
   const { toast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [acervoItems, setAcervoItems] = useState<StudyCardProps[]>([]);
+  const [items, setItems] = useState<StudyCardProps[]>([]);
+  const [filteredItems, setFilteredItems] = useState<StudyCardProps[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Carregar dados do Supabase
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<StudyCardProps | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState("all");
+
   useEffect(() => {
-    loadItems();
-    
-    // Verificar se há um ID de edição na URL
-    const editId = searchParams.get('edit');
-    if (editId) {
-      const itemToEdit = acervoItems.find(item => item.id.toString() === editId);
-      if (itemToEdit) {
-        handleEditItem(itemToEdit);
-      }
-    }
-  }, [searchParams]);
-  
-  const loadItems = async () => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('acervo_items')
         .select('*')
         .order('created_at', { ascending: false });
-      
+        
       if (error) throw error;
       
-      if (data) {
-        // Convert Supabase UUID to number ID for compatibility with existing components
-        const formattedData = data.map(item => ({
-          ...item,
-          id: parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || Math.floor(Math.random() * 10000),
-        }));
-        
-        setAcervoItems(formattedData);
-      }
+      // Use the conversion utility
+      const convertedData = convertArrayToStudyCardProps(data || []);
+      setItems(convertedData);
+      setFilteredItems(convertedData);
     } catch (error) {
-      console.error("Erro ao carregar itens do acervo:", error);
+      console.error("Error fetching items:", error);
       toast({
-        title: "Erro ao carregar dados",
-        description: "Não foi possível carregar os itens do acervo",
+        title: "Erro",
+        description: "Não foi possível carregar os itens do acervo.",
         variant: "destructive",
       });
     } finally {
@@ -65,190 +66,268 @@ const AdminAcervoPage = () => {
     }
   };
 
-  const handleAddItem = async (values: AcervoFormValues) => {
+  useEffect(() => {
+    let filtered = [...items];
+    
+    // Apply type filter
+    if (filterType !== "all") {
+      filtered = filtered.filter(item => item.type === filterType);
+    }
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.title.toLowerCase().includes(query) || 
+        item.excerpt.toLowerCase().includes(query)
+      );
+    }
+    
+    setFilteredItems(filtered);
+  }, [items, searchQuery, filterType]);
+
+  const handleAddItem = async (item: Omit<StudyCardProps, "id" | "createdAt">) => {
     try {
-      if (isEditing && editingId !== null) {
-        // Encontrar o item pelo ID de edição
-        const itemToUpdate = acervoItems.find(item => item.id.toString() === editingId);
-        
-        if (!itemToUpdate) {
-          throw new Error("Item não encontrado");
-        }
-        
-        // Atualizar item existente no Supabase
-        const { error } = await supabase
-          .from('acervo_items')
-          .update({
-            title: values.title,
-            type: values.type,
-            thumbnail: values.thumbnail,
-            excerpt: values.excerpt,
-            link: values.link,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', itemToUpdate.id);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Item atualizado",
-          description: "O item do acervo foi atualizado com sucesso",
-        });
-      } else {
-        // Adicionar novo item no Supabase
-        const { error } = await supabase
-          .from('acervo_items')
-          .insert({
-            title: values.title,
-            type: values.type,
-            thumbnail: values.thumbnail,
-            excerpt: values.excerpt,
-            link: values.link,
-            views: 0
-          });
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Item adicionado",
-          description: "Um novo item foi adicionado ao acervo",
-        });
-      }
+      // Convert from StudyCardProps to Supabase format
+      const newItem = {
+        title: item.title,
+        type: item.type,
+        thumbnail: item.thumbnail,
+        excerpt: item.excerpt,
+        link: item.link,
+      };
       
-      // Recarregar a lista após salvar
-      await loadItems();
+      const { data, error } = await supabase
+        .from('acervo_items')
+        .insert(newItem)
+        .select()
+        .single();
       
-      // Limpar parâmetros da URL se houver
-      if (searchParams.has('edit')) {
-        searchParams.delete('edit');
-        setSearchParams(searchParams);
-      }
+      if (error) throw error;
       
-      // Resetar estado e fechar dialog
-      resetAndCloseDialog();
-    } catch (error) {
-      console.error("Erro ao salvar item do acervo:", error);
+      // Convert back to StudyCardProps for the UI
+      const convertedItem = convertToStudyCardProps(data);
+      
+      setItems(prevItems => [convertedItem, ...prevItems]);
+      setIsAddDialogOpen(false);
+      
       toast({
-        title: "Erro ao salvar",
-        description: "Ocorreu um erro ao salvar o item no acervo",
+        title: "Item adicionado",
+        description: "O novo item foi adicionado ao acervo com sucesso.",
+      });
+    } catch (error) {
+      console.error("Error adding item:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível adicionar o item ao acervo.",
         variant: "destructive",
       });
     }
   };
 
-  const handleEditItem = (item: StudyCardProps) => {
-    setIsEditing(true);
-    setEditingId(item.id.toString());
-    setIsDialogOpen(true);
-  };
-
-  const handleDeleteItem = async (id: number) => {
-    if (confirm("Tem certeza que deseja excluir este item?")) {
-      try {
-        // Encontrar o item pelo ID para obter o UUID real no Supabase
-        const itemToDelete = acervoItems.find(item => item.id === id);
-        
-        if (!itemToDelete) {
-          throw new Error("Item não encontrado");
-        }
-        
-        const { error } = await supabase
-          .from('acervo_items')
-          .delete()
-          .eq('id', itemToDelete.id);
-        
-        if (error) throw error;
-        
-        // Recarregar a lista após excluir
-        await loadItems();
-        
-        toast({
-          title: "Item excluído",
-          description: "O item foi removido do acervo",
-        });
-      } catch (error) {
-        console.error("Erro ao excluir item do acervo:", error);
-        toast({
-          title: "Erro ao excluir",
-          description: "Ocorreu um erro ao excluir o item do acervo",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const handlePreviewItem = async (item: StudyCardProps) => {
+  const handleEditItem = async (updatedItem: StudyCardProps) => {
     try {
-      // Incrementar visualizações no Supabase
+      // Find the original item to get the actual UUID
+      const originalItem = items.find(item => item.id === updatedItem.id);
+      if (!originalItem) {
+        throw new Error("Item não encontrado");
+      }
+      
+      // Fetch the DB record to get the actual UUID
+      const { data: dbItems, error: fetchError } = await supabase
+        .from('acervo_items')
+        .select('*')
+        .limit(100);
+      
+      if (fetchError) throw fetchError;
+      
+      // Find the db item with the matching converted ID
+      const dbItem = dbItems.find(item => {
+        const convertedId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || 0;
+        return convertedId === updatedItem.id;
+      });
+      
+      if (!dbItem) {
+        throw new Error("Item não encontrado no banco de dados");
+      }
+      
+      // Update with the actual UUID
       const { error } = await supabase
         .from('acervo_items')
-        .update({ views: (item.views || 0) + 1 })
-        .eq('id', item.id);
+        .update({
+          title: updatedItem.title,
+          type: updatedItem.type,
+          thumbnail: updatedItem.thumbnail,
+          excerpt: updatedItem.excerpt,
+          link: updatedItem.link,
+        })
+        .eq('id', dbItem.id);
       
       if (error) throw error;
       
-      // Recarregar a lista para atualizar as visualizações
-      await loadItems();
+      // Update local state
+      setItems(prevItems => 
+        prevItems.map(item => 
+          item.id === updatedItem.id ? updatedItem : item
+        )
+      );
+      
+      setEditingItem(null);
+      
+      toast({
+        title: "Item atualizado",
+        description: "As alterações foram salvas com sucesso.",
+      });
     } catch (error) {
-      console.error("Erro ao atualizar visualizações:", error);
+      console.error("Error updating item:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o item.",
+        variant: "destructive",
+      });
     }
   };
 
-  const resetAndCloseDialog = () => {
-    setIsEditing(false);
-    setEditingId(null);
-    setIsDialogOpen(false);
+  const handleDeleteConfirm = async () => {
+    if (!deletingId) return;
+    
+    try {
+      // Find the original item UUID
+      const { data: dbItems, error: fetchError } = await supabase
+        .from('acervo_items')
+        .select('*')
+        .limit(100);
+      
+      if (fetchError) throw fetchError;
+      
+      // Find the db item with the matching converted ID
+      const dbItem = dbItems.find(item => {
+        const convertedId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || 0;
+        return convertedId === deletingId;
+      });
+      
+      if (!dbItem) {
+        throw new Error("Item não encontrado no banco de dados");
+      }
+      
+      const { error } = await supabase
+        .from('acervo_items')
+        .delete()
+        .eq('id', dbItem.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setItems(prevItems => prevItems.filter(item => item.id !== deletingId));
+      setIsDeleteDialogOpen(false);
+      setDeletingId(null);
+      
+      toast({
+        title: "Item excluído",
+        description: "O item foi removido do acervo com sucesso.",
+      });
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o item.",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Get current item being edited (for form default values)
-  const currentItem = isEditing && editingId 
-    ? acervoItems.find(item => item.id.toString() === editingId) 
-    : undefined;
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Acervo de Estudos</h2>
-          <p className="text-muted-foreground">
-            Gerencie o conteúdo do acervo de estudos disponível para os usuários.
-          </p>
-        </div>
-        <AcervoDialog
-          isOpen={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-          onSubmit={handleAddItem}
-          onCancel={resetAndCloseDialog}
-          isEditing={isEditing}
-          defaultValues={currentItem}
+    <div className="container mx-auto py-10">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-semibold">Gerenciar Acervo</h1>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Adicionar Item
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <Input
+          placeholder="Buscar por título ou descrição..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+          className="md:max-w-sm"
         />
+        <Select onValueChange={setFilterType} defaultValue="all">
+          <SelectTrigger className="md:max-w-xs">
+            <SelectValue placeholder="Filtrar por tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os Tipos</SelectItem>
+            <SelectItem value="video">Vídeos</SelectItem>
+            <SelectItem value="article">Artigos</SelectItem>
+            <SelectItem value="document">Documentos</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-12">
-          <p className="text-muted-foreground">Carregando itens do acervo...</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="animate-pulse rounded-md p-4 bg-muted">
+              <div className="h-40 bg-secondary rounded-md mb-2"></div>
+              <div className="h-6 bg-secondary rounded-md mb-2"></div>
+              <div className="h-4 bg-secondary rounded-md"></div>
+            </div>
+          ))}
         </div>
-      ) : acervoItems.length === 0 ? (
-        <Alert variant="default" className="bg-primary/5 border-primary/20">
-          <Info className="h-4 w-4" />
-          <AlertTitle>Acervo vazio</AlertTitle>
-          <AlertDescription>
-            Você ainda não adicionou nenhum conteúdo ao acervo. Clique no botão "Adicionar Conteúdo" para começar.
-          </AlertDescription>
-        </Alert>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {acervoItems.map((item) => (
-            <AcervoItemCard 
-              key={item.id} 
-              item={item} 
-              onEdit={handleEditItem} 
-              onDelete={handleDeleteItem}
-              onPreview={handlePreviewItem}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {filteredItems.map((item) => (
+            <AcervoItemCard
+              key={item.id}
+              item={item}
+              onEdit={(item) => setEditingItem(item)}
+              onDelete={(id) => {
+                setDeletingId(id);
+                setIsDeleteDialogOpen(true);
+              }}
             />
           ))}
         </div>
       )}
+
+      <AcervoDialog
+        open={isAddDialogOpen}
+        setOpen={setIsAddDialogOpen}
+        onSubmit={handleAddItem}
+      />
+
+      <AcervoDialog
+        open={!!editingItem}
+        setOpen={() => setEditingItem(null)}
+        item={editingItem}
+        onSubmit={handleEditItem}
+      />
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza de que deseja excluir este item do acervo? Esta ação
+              não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

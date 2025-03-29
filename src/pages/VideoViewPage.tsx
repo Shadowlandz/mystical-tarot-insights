@@ -1,11 +1,17 @@
 
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import VideoPlayer from "@/components/VideoPlayer";
 import { StudyCardProps } from "@/components/StudyCard";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 const VideoViewPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,13 +50,15 @@ const VideoViewPage = () => {
               .update({ views: (foundVideo.views || 0) + 1 })
               .eq('id', foundVideo.id);
             
-            // Convert the ID for compatibility
-            const videoWithNumericId = {
+            // Convert the ID for compatibility and ensure type is compatible with StudyCardProps
+            const videoWithNumericId: StudyCardProps = {
               ...foundVideo,
               id: parseInt(foundVideo.id.replace(/-/g, '').substring(0, 8), 16) || Math.floor(Math.random() * 10000),
+              type: foundVideo.type as "video" | "article" | "document",
+              createdAt: foundVideo.created_at,
             };
             
-            setVideo(videoWithNumericId as StudyCardProps);
+            setVideo(videoWithNumericId);
           } else {
             setError("Vídeo não encontrado");
           }
@@ -67,6 +75,25 @@ const VideoViewPage = () => {
     
     fetchVideo();
   }, [id]);
+
+  const handleShareVideo = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: video?.title || "Vídeo compartilhado",
+        url: window.location.href,
+      })
+      .then(() => {
+        toast.success("Vídeo compartilhado com sucesso!");
+      })
+      .catch((error) => {
+        console.error("Erro ao compartilhar:", error);
+      });
+    } else {
+      // Fallback for browsers that don't support the Web Share API
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copiado para a área de transferência!");
+    }
+  };
   
   if (loading) {
     return (
@@ -96,12 +123,23 @@ const VideoViewPage = () => {
   
   return (
     <div className="container mx-auto py-16 px-4">
-      <Button asChild variant="outline" className="mb-6">
-        <Link to="/acervo">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar para o Acervo
-        </Link>
-      </Button>
+      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+        <Button asChild variant="outline">
+          <Link to="/acervo">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar para o Acervo
+          </Link>
+        </Button>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="icon" onClick={handleShareVideo}>
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Compartilhar vídeo</TooltipContent>
+        </Tooltip>
+      </div>
       
       <h1 className="text-3xl font-mystical text-accent mb-6">{video.title}</h1>
       
