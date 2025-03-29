@@ -1,4 +1,3 @@
-
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -12,6 +11,9 @@ export interface StudyCardProps {
   excerpt: string;
   link: string;
   className?: string;
+  views?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export default function StudyCard({ id, title, type, thumbnail, excerpt, link, className }: StudyCardProps) {
@@ -27,13 +29,11 @@ export default function StudyCard({ id, title, type, thumbnail, excerpt, link, c
     document: "Documento"
   };
 
-  // Determinar o caminho de destino - para vídeos, usamos a visualização interna
   const isVideo = type === "video";
   const destination = isVideo 
     ? `/acervo/video/${id}` 
     : link;
   
-  // Determinar se o link é externo ou interno
   const isExternalLink = !isVideo && !link.startsWith('/');
   
   const LinkComponent = isExternalLink 
