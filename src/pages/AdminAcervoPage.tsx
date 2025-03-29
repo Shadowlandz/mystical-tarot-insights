@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
@@ -86,16 +87,20 @@ const AdminAcervoPage = () => {
     setFilteredItems(filtered);
   }, [items, searchQuery, filterType]);
 
-  const handleAddItem = async (item: Omit<StudyCardProps, "id" | "createdAt">) => {
+  const handleAddItem = async (formValues) => {
     try {
-      // Convert from StudyCardProps to Supabase format
+      console.log("Form values received:", formValues);
+      
+      // Extract the form values
       const newItem = {
-        title: item.title,
-        type: item.type,
-        thumbnail: item.thumbnail,
-        excerpt: item.excerpt,
-        link: item.link,
+        title: formValues.title,
+        type: formValues.type,
+        thumbnail: formValues.thumbnail,
+        excerpt: formValues.excerpt,
+        link: formValues.link,
       };
+      
+      console.log("Sending to Supabase:", newItem);
       
       const { data, error } = await supabase
         .from('acervo_items')
@@ -103,7 +108,12 @@ const AdminAcervoPage = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+      
+      console.log("Response from Supabase:", data);
       
       // Convert back to StudyCardProps for the UI
       const convertedItem = convertToStudyCardProps(data);
