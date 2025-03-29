@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import VideoPlayer from "@/components/VideoPlayer";
 import { StudyCardProps } from "@/components/StudyCard";
-import { studyData } from "@/data/tarotData";
+import { supabase } from "@/integrations/supabase/client";
 
 const VideoViewPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,25 +14,58 @@ const VideoViewPage = () => {
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
-    // Em uma implementação real, aqui faria uma chamada à API
-    // Para demo, usamos os dados estáticos
-    setLoading(true);
-    
-    try {
-      const videoId = parseInt(id || '0');
-      const foundVideo = studyData.find(item => item.id === videoId && item.type === "video");
+    const fetchVideo = async () => {
+      setLoading(true);
       
-      if (foundVideo) {
-        setVideo(foundVideo as StudyCardProps);
-      } else {
-        setError("Vídeo não encontrado");
+      try {
+        // First try to find the video by numeric ID (for compatibility with existing routes)
+        const videoId = parseInt(id || '0');
+        
+        // Query Supabase for the video
+        const { data, error } = await supabase
+          .from('acervo_items')
+          .select('*')
+          .eq('type', 'video')
+          .limit(100); // Get all videos, then filter by converted ID
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          // Find the video with matching converted ID
+          const foundVideo = data.find(item => {
+            const convertedId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || 0;
+            return convertedId === videoId;
+          });
+          
+          if (foundVideo) {
+            // Update view count
+            await supabase
+              .from('acervo_items')
+              .update({ views: (foundVideo.views || 0) + 1 })
+              .eq('id', foundVideo.id);
+            
+            // Convert the ID for compatibility
+            const videoWithNumericId = {
+              ...foundVideo,
+              id: parseInt(foundVideo.id.replace(/-/g, '').substring(0, 8), 16) || Math.floor(Math.random() * 10000),
+            };
+            
+            setVideo(videoWithNumericId as StudyCardProps);
+          } else {
+            setError("Vídeo não encontrado");
+          }
+        } else {
+          setError("Vídeo não encontrado");
+        }
+      } catch (err) {
+        setError("Erro ao carregar o vídeo");
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError("Erro ao carregar o vídeo");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    };
+    
+    fetchVideo();
   }, [id]);
   
   if (loading) {

@@ -1,20 +1,57 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import StudyCard from "@/components/StudyCard";
-import { studyData } from "@/data/tarotData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter } from "lucide-react";
+import { Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { StudyCardProps } from "@/components/StudyCard";
 
 const AcervoPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [acervoItems, setAcervoItems] = useState<StudyCardProps[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch data from Supabase
+  useEffect(() => {
+    fetchAcervoItems();
+  }, []);
+  
+  const fetchAcervoItems = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('acervo_items')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("Error fetching acervo items:", error);
+        return;
+      }
+      
+      if (data) {
+        // Convert Supabase UUID to number ID for compatibility with existing components
+        const formattedData = data.map(item => ({
+          ...item,
+          id: parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || Math.floor(Math.random() * 10000),
+        }));
+        
+        setAcervoItems(formattedData);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Filtragem dos estudos com base na pesquisa e na tab ativa
-  const filteredStudies = studyData.filter((study) => {
+  const filteredStudies = acervoItems.filter((study) => {
     const matchesSearch = study.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          study.excerpt.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -79,7 +116,11 @@ const AcervoPage = () => {
               </TabsList>
             </Tabs>
             
-            {filteredStudies.length > 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <p className="text-muted-foreground">Carregando itens do acervo...</p>
+              </div>
+            ) : filteredStudies.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredStudies.map((study) => (
                   <StudyCard
