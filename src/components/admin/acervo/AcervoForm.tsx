@@ -1,7 +1,8 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
+import { useEffect } from "react";
 
 import {
   Form,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
+import { getVideoThumbnail } from "@/utils/videoUtils";
 
 // Form validation schema
 export const acervoFormSchema = z.object({
@@ -63,6 +65,21 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
       link: "",
     },
   });
+
+  // Observar os campos 'type' e 'link' para detectar automaticamente a thumbnail
+  const type = useWatch({ control: form.control, name: "type" });
+  const link = useWatch({ control: form.control, name: "link" });
+  const currentThumbnail = useWatch({ control: form.control, name: "thumbnail" });
+
+  // Detectar thumbnail automaticamente quando for um vídeo
+  useEffect(() => {
+    if (type === "video" && link && (!currentThumbnail || currentThumbnail === "")) {
+      const thumbnail = getVideoThumbnail(link);
+      if (thumbnail) {
+        form.setValue("thumbnail", thumbnail, { shouldValidate: true });
+      }
+    }
+  }, [type, link, currentThumbnail, form]);
 
   return (
     <Form {...form}>
@@ -109,6 +126,25 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
         
         <FormField
           control={form.control}
+          name="link"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Link do Conteúdo</FormLabel>
+              <FormControl>
+                <Input placeholder="https://example.com/content" {...field} />
+              </FormControl>
+              <FormDescription>
+                {type === "video" ? 
+                  "URL do vídeo (YouTube, Vimeo, etc.). A miniatura será detectada automaticamente." : 
+                  "URL para o artigo ou documento completo"}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
           name="thumbnail"
           render={({ field }) => (
             <FormItem>
@@ -117,8 +153,23 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
                 <Input placeholder="https://example.com/image.jpg" {...field} />
               </FormControl>
               <FormDescription>
-                URL de uma imagem para representar o conteúdo
+                {type === "video" ? 
+                  "Miniatura detectada automaticamente. Você pode modificá-la se desejar." : 
+                  "URL de uma imagem para representar o conteúdo"}
               </FormDescription>
+              {field.value && (
+                <div className="mt-2">
+                  <p className="text-sm mb-1">Prévia:</p>
+                  <img 
+                    src={field.value} 
+                    alt="Thumbnail preview" 
+                    className="w-full h-32 object-cover rounded-md" 
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Imagem+Inválida';
+                    }}
+                  />
+                </div>
+              )}
               <FormMessage />
             </FormItem>
           )}
@@ -138,23 +189,6 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
                   {...field} 
                 />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="link"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Link do Conteúdo</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/content" {...field} />
-              </FormControl>
-              <FormDescription>
-                URL para o artigo, vídeo ou documento completo
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

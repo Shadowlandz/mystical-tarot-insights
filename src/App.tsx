@@ -9,6 +9,7 @@ import TarotPage from "./pages/TarotPage";
 import AcervoPage from "./pages/AcervoPage";
 import SobrePage from "./pages/SobrePage";
 import NotFound from "./pages/NotFound";
+import VideoViewPage from "./pages/VideoViewPage";
 
 // Admin Pages
 import AdminLoginPage from "./pages/AdminLoginPage";
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/tarot" element={<TarotPage />} />
           <Route path="/acervo" element={<AcervoPage />} />
+          <Route path="/acervo/video/:id" element={<VideoViewPage />} />
           <Route path="/sobre" element={<SobrePage />} />
           
           {/* Rotas administrativas */}

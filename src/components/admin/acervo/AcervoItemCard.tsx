@@ -1,5 +1,6 @@
 
-import { Edit, Trash2, FileText, Video, Library } from "lucide-react";
+import { Edit, Trash2, FileText, Video, Library, Eye } from "lucide-react";
+import { useState } from "react";
 import { StudyCardProps } from "@/components/StudyCard";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import VideoPlayer from "@/components/VideoPlayer";
 
 interface AcervoItemCardProps {
   item: StudyCardProps;
@@ -18,6 +20,8 @@ interface AcervoItemCardProps {
 }
 
 export function AcervoItemCard({ item, onEdit, onDelete }: AcervoItemCardProps) {
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
   const TypeIcon = ({ type }: { type: "article" | "video" | "document" }) => {
     switch (type) {
       case "article":
@@ -42,12 +46,21 @@ export function AcervoItemCard({ item, onEdit, onDelete }: AcervoItemCardProps) 
 
   return (
     <Card className="overflow-hidden">
-      <div className="h-40 overflow-hidden">
+      <div className="h-40 overflow-hidden relative group">
         <img 
           src={item.thumbnail} 
           alt={item.title}
           className="w-full h-full object-cover"
         />
+        
+        {item.type === "video" && (
+          <div 
+            className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            onClick={() => setIsPreviewOpen(true)}
+          >
+            <Eye className="h-12 w-12 text-white" />
+          </div>
+        )}
       </div>
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
@@ -58,6 +71,15 @@ export function AcervoItemCard({ item, onEdit, onDelete }: AcervoItemCardProps) 
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground line-clamp-2">{item.excerpt}</p>
+        
+        {isPreviewOpen && item.type === "video" && (
+          <div className="mt-4">
+            <VideoPlayer videoUrl={item.link} title={item.title} />
+            <Button variant="outline" size="sm" className="mt-2 w-full" onClick={() => setIsPreviewOpen(false)}>
+              Fechar prévia
+            </Button>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between">
         <Button variant="outline" size="sm" onClick={() => onEdit(item)}>
