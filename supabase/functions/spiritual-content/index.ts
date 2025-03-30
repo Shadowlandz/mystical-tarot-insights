@@ -124,29 +124,6 @@ function generateRandomContent(count: number) {
   return items;
 }
 
-// Função para inserir os itens no banco de dados
-async function insertContentItems(supabaseClient, items) {
-  try {
-    const { data, error } = await supabaseClient
-      .from('acervo_items')
-      .insert(items.map(item => ({
-        title: item.title,
-        type: item.type,
-        thumbnail: item.thumbnail,
-        excerpt: item.excerpt,
-        link: item.link,
-        views: 0
-      })))
-      .select();
-    
-    if (error) throw error;
-    return { success: true, data };
-  } catch (error) {
-    console.error("Error inserting items:", error);
-    return { success: false, error };
-  }
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -154,9 +131,32 @@ serve(async (req) => {
   }
 
   try {
-    // Parâmetros da requisição
-    const url = new URL(req.url);
-    const count = parseInt(url.searchParams.get('count') || '3');
+    // Updated: Parse request body for parameters instead of URL query params
+    let count = 3; // Default value
+    
+    // Check if we have a body to parse
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        const body = await req.json();
+        // If body contains count parameter, use it
+        if (body && body.count) {
+          count = parseInt(body.count);
+        }
+      } catch (e) {
+        console.error('Error parsing request body:', e);
+      }
+    } else {
+      // Fallback to URL params for backward compatibility
+      const url = new URL(req.url);
+      const urlCount = url.searchParams.get('count');
+      if (urlCount) {
+        count = parseInt(urlCount);
+      }
+    }
+    
+    // Ensure count is valid
+    count = Math.max(1, Math.min(count, 10)); // Between 1 and 10
     
     // Gerar conteúdo aleatório
     const randomContent = generateRandomContent(count);

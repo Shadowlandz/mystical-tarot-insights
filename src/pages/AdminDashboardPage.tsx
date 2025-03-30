@@ -70,9 +70,9 @@ const AdminDashboardPage = () => {
   const generateSpiritualContent = async () => {
     setIsGenerating(true);
     try {
-      // Chamar a edge function para gerar conteúdo espiritual
+      // Fix: Update the parameters format for the edge function
       const { data, error } = await supabase.functions.invoke('spiritual-content', {
-        query: { count: '3' }
+        body: { count: 3 }
       });
 
       if (error) throw error;
