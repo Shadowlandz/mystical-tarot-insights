@@ -1,4 +1,3 @@
-
 import {
   Table,
   TableBody,
@@ -10,7 +9,7 @@ import {
 import { StudyCardProps } from "@/components/StudyCard";
 import { Badge } from "@/components/ui/badge";
 import { Eye, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -36,7 +35,6 @@ export const ContentCatalogTable = ({ items }: ContentCatalogTableProps) => {
     }
   };
 
-  // Extract domain from URL for better source display
   const getSourceDomain = (link: string) => {
     try {
       const url = new URL(link);
@@ -97,15 +95,12 @@ export const ContentCatalogTable = ({ items }: ContentCatalogTableProps) => {
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    {/* Replace the Button with a direct anchor tag */}
                     <a
                       href={item.link}
                       target="_blank"
                       rel="noopener noreferrer"
                       title="Abrir fonte original"
-                      className={Button.toString() !== '[object Object]' ? 
-                        buttonVariants({ variant: 'ghost', size: 'icon' }) : 
-                        'inline-flex items-center justify-center h-10 w-10 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground'}
+                      className={buttonVariants({ variant: 'ghost', size: 'icon' })}
                     >
                       <ExternalLink className="h-4 w-4" />
                     </a>
