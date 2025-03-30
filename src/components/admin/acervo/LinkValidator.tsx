@@ -14,7 +14,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { validateMultipleLinks, LinkValidationResult } from "@/utils/linkValidator";
+import { validateMultipleLinks, validateLink, LinkValidationResult } from "@/utils/linkValidator";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StudyCardProps } from "@/components/StudyCard";
@@ -100,7 +100,7 @@ export function LinkValidator({ items, onRefreshItems }: LinkValidatorProps) {
             {validationResults.length > 0 && (
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <Badge variant={filteredResults.every(r => r.result.isValid) ? "success" : "destructive"}>
+                  <Badge variant={filteredResults.every(r => r.result.isValid) ? "default" : "destructive"}>
                     {filteredResults.filter(r => r.result.isValid).length} válidos
                   </Badge>
                   <Badge variant="destructive">
