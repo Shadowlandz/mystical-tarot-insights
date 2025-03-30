@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
@@ -13,6 +12,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { AcervoItemCard } from "@/components/admin/acervo/AcervoItemCard";
 import { AcervoDialog } from "@/components/admin/acervo/AcervoDialog";
+import { LinkValidator } from "@/components/admin/acervo/LinkValidator";
 import { StudyCardProps } from "@/components/StudyCard";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -23,7 +23,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
-import { convertArrayToStudyCardProps, convertToStudyCardProps, SupabaseAcervoItem } from "@/types/acervo";
+import { convertArrayToStudyCardProps, convertToStudyCardProps } from "@/types/acervo";
 
 const AdminAcervoPage = () => {
   const { toast } = useToast();
@@ -51,7 +51,6 @@ const AdminAcervoPage = () => {
         
       if (error) throw error;
       
-      // Use the conversion utility
       const convertedData = convertArrayToStudyCardProps(data || []);
       setItems(convertedData);
       setFilteredItems(convertedData);
@@ -70,12 +69,10 @@ const AdminAcervoPage = () => {
   useEffect(() => {
     let filtered = [...items];
     
-    // Apply type filter
     if (filterType !== "all") {
       filtered = filtered.filter(item => item.type === filterType);
     }
     
-    // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(item => 
@@ -91,7 +88,6 @@ const AdminAcervoPage = () => {
     try {
       console.log("Form values received:", formValues);
       
-      // Extract the form values
       const newItem = {
         title: formValues.title,
         type: formValues.type,
@@ -115,7 +111,6 @@ const AdminAcervoPage = () => {
       
       console.log("Response from Supabase:", data);
       
-      // Convert back to StudyCardProps for the UI
       const convertedItem = convertToStudyCardProps(data);
       
       setItems(prevItems => [convertedItem, ...prevItems]);
@@ -137,13 +132,11 @@ const AdminAcervoPage = () => {
 
   const handleEditItem = async (updatedItem: StudyCardProps) => {
     try {
-      // Find the original item to get the actual UUID
       const originalItem = items.find(item => item.id === updatedItem.id);
       if (!originalItem) {
         throw new Error("Item não encontrado");
       }
       
-      // Fetch the DB record to get the actual UUID
       const { data: dbItems, error: fetchError } = await supabase
         .from('acervo_items')
         .select('*')
@@ -151,7 +144,6 @@ const AdminAcervoPage = () => {
       
       if (fetchError) throw fetchError;
       
-      // Find the db item with the matching converted ID
       const dbItem = dbItems.find(item => {
         const convertedId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || 0;
         return convertedId === updatedItem.id;
@@ -161,7 +153,6 @@ const AdminAcervoPage = () => {
         throw new Error("Item não encontrado no banco de dados");
       }
       
-      // Update with the actual UUID
       const { error } = await supabase
         .from('acervo_items')
         .update({
@@ -175,7 +166,6 @@ const AdminAcervoPage = () => {
       
       if (error) throw error;
       
-      // Update local state
       setItems(prevItems => 
         prevItems.map(item => 
           item.id === updatedItem.id ? updatedItem : item
@@ -202,7 +192,6 @@ const AdminAcervoPage = () => {
     if (!deletingId) return;
     
     try {
-      // Find the original item UUID
       const { data: dbItems, error: fetchError } = await supabase
         .from('acervo_items')
         .select('*')
@@ -210,7 +199,6 @@ const AdminAcervoPage = () => {
       
       if (fetchError) throw fetchError;
       
-      // Find the db item with the matching converted ID
       const dbItem = dbItems.find(item => {
         const convertedId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || 0;
         return convertedId === deletingId;
@@ -227,7 +215,6 @@ const AdminAcervoPage = () => {
       
       if (error) throw error;
       
-      // Update local state
       setItems(prevItems => prevItems.filter(item => item.id !== deletingId));
       setIsDeleteDialogOpen(false);
       setDeletingId(null);
@@ -254,10 +241,13 @@ const AdminAcervoPage = () => {
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-semibold">Gerenciar Acervo</h1>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar Item
-        </Button>
+        <div className="flex gap-2">
+          <LinkValidator items={items} onRefreshItems={fetchItems} />
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Item
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

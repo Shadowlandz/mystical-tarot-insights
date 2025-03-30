@@ -2,7 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Form,
@@ -24,7 +24,11 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { getVideoThumbnail, isVideoUrl } from "@/utils/videoUtils";
+import { validateLink, LinkValidationResult } from "@/utils/linkValidator";
 
 // Form validation schema
 export const acervoFormSchema = z.object({
@@ -70,6 +74,10 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
   const type = useWatch({ control: form.control, name: "type" });
   const link = useWatch({ control: form.control, name: "link" });
   const currentThumbnail = useWatch({ control: form.control, name: "thumbnail" });
+  
+  // Estado para controlar a validação do link
+  const [linkValidation, setLinkValidation] = useState<LinkValidationResult | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   // Detectar thumbnail automaticamente quando for um vídeo
   useEffect(() => {
@@ -80,10 +88,67 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
       }
     }
   }, [type, link, currentThumbnail, form]);
+  
+  // Função para validar o link atual
+  const handleValidateLink = async () => {
+    const currentLink = form.getValues().link;
+    if (!currentLink) {
+      toast.error("Insira um link para validar");
+      return;
+    }
+    
+    setIsValidating(true);
+    setLinkValidation(null);
+    
+    try {
+      const result = await validateLink(currentLink);
+      setLinkValidation(result);
+      
+      if (result.isValid) {
+        toast.success("Link validado com sucesso!");
+        
+        // Se for um vídeo e o resultado trouxer uma thumbnail, usamos ela
+        if (type === "video" && result.thumbnail && (!currentThumbnail || currentThumbnail === "")) {
+          form.setValue("thumbnail", result.thumbnail, { shouldValidate: true });
+        }
+      } else {
+        toast.error("Problema com o link: " + result.message);
+      }
+    } catch (error) {
+      toast.error("Erro ao validar link: " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsValidating(false);
+    }
+  };
+  
+  // Função personalizada para submit
+  const handleFormSubmit = async (values: AcervoFormValues) => {
+    // Validar o link antes de enviar
+    setIsValidating(true);
+    
+    try {
+      const result = await validateLink(values.link);
+      
+      if (!result.isValid) {
+        // Mostrar confirmação antes de prosseguir com um link inválido
+        if (!window.confirm(`O link parece estar inacessível: ${result.message}. Deseja continuar mesmo assim?`)) {
+          setIsValidating(false);
+          return;
+        }
+      }
+      
+      // Se chegou aqui, o usuário confirmou ou o link está válido
+      onSubmit(values);
+    } catch (error) {
+      toast.error("Erro ao validar link: " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsValidating(false);
+    }
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="title"
@@ -130,14 +195,41 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
           render={({ field }) => (
             <FormItem>
               <FormLabel>Link do Conteúdo</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/content" {...field} />
-              </FormControl>
+              <div className="flex gap-2">
+                <FormControl className="flex-1">
+                  <Input placeholder="https://example.com/content" {...field} />
+                </FormControl>
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  onClick={handleValidateLink}
+                  disabled={isValidating || !field.value}
+                >
+                  {isValidating ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    "Validar Link"
+                  )}
+                </Button>
+              </div>
               <FormDescription>
                 {type === "video" ? 
                   "URL do vídeo (YouTube, Vimeo, etc.). A miniatura será detectada automaticamente." : 
                   "URL para o artigo ou documento completo"}
               </FormDescription>
+              
+              {linkValidation && (
+                <Alert variant={linkValidation.isValid ? "default" : "destructive"} className="mt-2">
+                  {linkValidation.isValid ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4" />
+                  )}
+                  <AlertTitle>{linkValidation.isValid ? "Link válido" : "Problema detectado"}</AlertTitle>
+                  <AlertDescription>{linkValidation.message}</AlertDescription>
+                </Alert>
+              )}
+              
               <FormMessage />
             </FormItem>
           )}
@@ -198,7 +290,7 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button type="submit">
+          <Button type="submit" disabled={isValidating}>
             {isEditing ? "Atualizar" : "Adicionar"}
           </Button>
         </DialogFooter>
