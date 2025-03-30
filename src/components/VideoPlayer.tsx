@@ -34,11 +34,20 @@ const VideoPlayer = ({ videoUrl, title, className, autoPlay = false }: VideoPlay
     return <div className="p-4 bg-muted rounded-md">URL de vídeo inválida</div>;
   }
 
+  // Added parameters to enable controls in the embedded video
+  const videoParams = new URLSearchParams({
+    autoplay: autoPlay ? '1' : '0',
+    controls: '1',       // Enable player controls
+    modestbranding: '1', // Minimize YouTube branding
+    rel: '0',           // Don't show related videos
+    showinfo: '0'       // Hide video title and uploader info
+  }).toString();
+
   return (
     <div className={className}>
       <AspectRatio ratio={16 / 9}>
         <iframe
-          src={`${embedUrl}${autoPlay ? '?autoplay=1' : ''}`}
+          src={`${embedUrl}?${videoParams}`}
           title={title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen

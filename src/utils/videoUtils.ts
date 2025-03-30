@@ -81,6 +81,7 @@ export function getVideoThumbnail(videoUrl: string): string | null {
 
 /**
  * Converte URL de vídeo do YouTube para URL de embed
+ * Já está preparada para receber parâmetros adicionais
  */
 export function getYouTubeEmbedUrl(videoId: string): string {
   return `https://www.youtube.com/embed/${videoId}`;
@@ -95,6 +96,8 @@ export function getVimeoEmbedUrl(videoId: string): string {
 
 /**
  * Obtém URL para embed de vídeo
+ * Função atualizada para remover parâmetros existentes da URL
+ * e permitir que novos parâmetros sejam adicionados de forma limpa
  */
 export function getVideoEmbedUrl(videoUrl: string): string | null {
   if (isYouTubeUrl(videoUrl)) {

@@ -59,6 +59,7 @@ const VideoViewPage = () => {
             };
             
             setVideo(videoWithNumericId);
+            console.log("Loaded video:", videoWithNumericId);
           } else {
             setError("Vídeo não encontrado");
           }
