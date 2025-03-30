@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { StudyCardProps } from "@/components/StudyCard";
 import { Badge } from "@/components/ui/badge";
-import { Eye } from "lucide-react";
+import { Eye, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
@@ -36,6 +36,16 @@ export const ContentCatalogTable = ({ items }: ContentCatalogTableProps) => {
     }
   };
 
+  // Extract domain from URL for better source display
+  const getSourceDomain = (link: string) => {
+    try {
+      const url = new URL(link);
+      return url.hostname.replace('www.', '');
+    } catch (e) {
+      return "fonte desconhecida";
+    }
+  };
+
   return (
     <div className="rounded-md border bg-card">
       <Table>
@@ -43,6 +53,7 @@ export const ContentCatalogTable = ({ items }: ContentCatalogTableProps) => {
           <TableRow>
             <TableHead>Tipo</TableHead>
             <TableHead>Título</TableHead>
+            <TableHead className="hidden md:table-cell">Fonte</TableHead>
             <TableHead className="hidden md:table-cell">Criado</TableHead>
             <TableHead className="hidden md:table-cell">Visualizações</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -51,7 +62,7 @@ export const ContentCatalogTable = ({ items }: ContentCatalogTableProps) => {
         <TableBody>
           {items.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 Nenhum conteúdo encontrado.
               </TableCell>
             </TableRow>
@@ -68,20 +79,36 @@ export const ContentCatalogTable = ({ items }: ContentCatalogTableProps) => {
                   {item.title}
                 </TableCell>
                 <TableCell className="hidden md:table-cell text-muted-foreground">
+                  <span className="text-xs">{getSourceDomain(item.link)}</span>
+                </TableCell>
+                <TableCell className="hidden md:table-cell text-muted-foreground">
                   {getCreatedAt(item)}
                 </TableCell>
                 <TableCell className="hidden md:table-cell text-muted-foreground">
                   {item.views || 0}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => navigate(`/admin/acervo?edit=${item.id}`)}
-                    title="Visualizar conteúdo"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <div className="flex justify-end space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => navigate(`/admin/acervo?edit=${item.id}`)}
+                      title="Editar conteúdo"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      as="a"
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Abrir fonte original"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))

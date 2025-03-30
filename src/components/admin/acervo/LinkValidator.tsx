@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2, ExternalLink, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { 
@@ -18,6 +18,14 @@ import { validateMultipleLinks, validateLink, LinkValidationResult } from "@/uti
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StudyCardProps } from "@/components/StudyCard";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getTypeIcon, getTypeLabel } from "@/components/admin/acervo/AcervoTypeUtils";
 
 interface LinkValidatorProps {
   items: StudyCardProps[];
@@ -29,7 +37,7 @@ export function LinkValidator({ items, onRefreshItems }: LinkValidatorProps) {
   const [isValidating, setIsValidating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [validationResults, setValidationResults] = useState<{url: string, result: LinkValidationResult, item: StudyCardProps}[]>([]);
-  const [showOnlyInvalid, setShowOnlyInvalid] = useState(false);
+  const [filterType, setFilterType] = useState<"all" | "valid" | "invalid">("all");
   
   const startValidation = async () => {
     if (!items.length) {
@@ -42,13 +50,13 @@ export function LinkValidator({ items, onRefreshItems }: LinkValidatorProps) {
     setValidationResults([]);
     
     try {
-      const links = items.map(item => item.link);
-      const totalLinks = links.length;
+      const totalLinks = items.length;
       const results: {url: string, result: LinkValidationResult, item: StudyCardProps}[] = [];
       
       for (let i = 0; i < totalLinks; i++) {
-        const url = links[i];
         const item = items[i];
+        const url = item.link;
+        
         const result = await validateLink(url);
         
         results.push({ url, result, item });
@@ -72,9 +80,26 @@ export function LinkValidator({ items, onRefreshItems }: LinkValidatorProps) {
     }
   };
   
-  const filteredResults = showOnlyInvalid 
-    ? validationResults.filter(r => !r.result.isValid)
-    : validationResults;
+  // Extract domain from URL for better source display
+  const getSourceDomain = (link: string) => {
+    try {
+      const url = new URL(link);
+      return url.hostname.replace('www.', '');
+    } catch (e) {
+      return "fonte desconhecida";
+    }
+  };
+  
+  const filteredResults = (() => {
+    switch (filterType) {
+      case "valid":
+        return validationResults.filter(r => r.result.isValid);
+      case "invalid":
+        return validationResults.filter(r => !r.result.isValid);
+      default:
+        return validationResults;
+    }
+  })();
   
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -100,20 +125,29 @@ export function LinkValidator({ items, onRefreshItems }: LinkValidatorProps) {
             {validationResults.length > 0 && (
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <Badge variant={filteredResults.every(r => r.result.isValid) ? "default" : "destructive"}>
-                    {filteredResults.filter(r => r.result.isValid).length} válidos
+                  <Badge variant="default">
+                    {validationResults.filter(r => r.result.isValid).length} válidos
                   </Badge>
                   <Badge variant="destructive">
-                    {filteredResults.filter(r => !r.result.isValid).length} inválidos
+                    {validationResults.filter(r => !r.result.isValid).length} inválidos
                   </Badge>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setShowOnlyInvalid(!showOnlyInvalid)}
+                <Select
+                  value={filterType}
+                  onValueChange={(value: "all" | "valid" | "invalid") => setFilterType(value)}
                 >
-                  {showOnlyInvalid ? "Mostrar Todos" : "Mostrar Apenas Inválidos"}
-                </Button>
+                  <SelectTrigger className="w-[180px]">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4" />
+                      <SelectValue placeholder="Filtrar resultados" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os links</SelectItem>
+                    <SelectItem value="valid">Apenas válidos</SelectItem>
+                    <SelectItem value="invalid">Apenas inválidos</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
             
@@ -123,13 +157,21 @@ export function LinkValidator({ items, onRefreshItems }: LinkValidatorProps) {
                   <CardHeader className="pb-2">
                     <div className="flex justify-between">
                       <CardTitle className="text-base">{item.item.title}</CardTitle>
-                      <Badge>{item.item.type}</Badge>
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        {getTypeIcon(item.item.type)}
+                        {getTypeLabel(item.item.type)}
+                      </Badge>
                     </div>
-                    <CardDescription className="flex items-center">
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-xs truncate hover:underline flex items-center">
-                        {item.url}
-                        <ExternalLink className="h-3 w-3 ml-1" />
-                      </a>
+                    <CardDescription className="flex flex-col gap-1">
+                      <span className="text-xs text-muted-foreground">
+                        Fonte: {getSourceDomain(item.url)}
+                      </span>
+                      <div className="flex items-center">
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-xs truncate hover:underline text-primary flex items-center">
+                          {item.url}
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                        </a>
+                      </div>
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
