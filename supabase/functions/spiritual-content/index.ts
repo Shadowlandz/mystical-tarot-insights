@@ -1,191 +1,193 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Sites confiáveis de espiritualidade
-const TRUSTED_SOURCES = [
-  { name: "Espiritualidade na Prática", url: "https://espiritualizando.com.br" },
-  { name: "Portal da Espiritualidade", url: "https://www.espiritismo.es" },
-  { name: "Mente Espiritual", url: "https://www.menteespiritual.com" },
-  { name: "Sabedoria Espiritual", url: "https://harmoniaespiritual.com.br" },
-  { name: "Caminho da Paz", url: "https://www.caminhodapaz.com.br" }
+// Sources for spiritual content
+const sources = [
+  { name: "Espiritualidade na Prática", url: "https://espiritualidadenaprática.com" },
+  { name: "Portal da Espiritualidade", url: "https://portalespiritual.com" },
+  { name: "Mente Espiritual", url: "https://menteespiritual.com" },
+  { name: "Luz Interior", url: "https://luzinterior.org" },
+  { name: "Caminho da Paz", url: "https://caminhodapaz.org" }
 ];
 
-// Temas relacionados à espiritualidade
-const SPIRITUAL_TOPICS = [
-  "meditação", "yoga", "mindfulness", "tarô", "astrologia", "chakras",
-  "energia universal", "karma", "reencarnação", "evolução espiritual",
-  "autoconhecimento", "amor universal", "intuição", "lei da atração",
-  "práticas espirituais", "consciência", "paz interior"
+// Spiritual topics
+const topics = [
+  "meditação", "yoga", "mindfulness", "tarô", "astrologia", 
+  "cristais", "chakras", "energia universal", "intuição", 
+  "espiritualidade", "autoconhecimento", "equilíbrio energético"
 ];
 
-// Tipos de conteúdo
-const CONTENT_TYPES = ["article", "video", "document"];
+// Image placeholders for spiritual content
+const imagePlaceholders = [
+  "https://images.unsplash.com/photo-1531171074114-ce2fb0d97711?w=800&h=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&h=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1604881991720-f91add269bed?w=800&h=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=800&h=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1532570204997-95c9903069e5?w=800&h=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=800&h=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1574722772633-e4abe41ced20?w=800&h=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1566513835522-a47aee7a0d4a?w=800&h=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1567447426030-b7793211cc62?w=800&h=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1562516155-e0c1ee44059b?w=800&h=600&auto=format&fit=crop",
+];
 
-// Função para gerar um resumo aleatório
-function generateRandomExcerpt(topic: string): string {
-  const intros = [
-    `Descubra como ${topic} pode transformar sua vida espiritual.`,
-    `Aprenda práticas essenciais de ${topic} para seu desenvolvimento espiritual.`,
-    `Entenda a conexão entre ${topic} e seu crescimento interior.`,
-    `Explore os segredos antigos de ${topic} e sua relevância hoje.`,
-    `Conheça as origens e benefícios de ${topic} na jornada espiritual.`
+// Generate spiritual titles
+function generateTitle(topic: string): string {
+  const templates = [
+    `O Poder de ${topic} para Transformar sua Vida`,
+    `Como ${topic} pode Elevar sua Consciência`,
+    `Despertando a Sabedoria Interior através de ${topic}`,
+    `${topic}: Um Caminho para a Iluminação Espiritual`,
+    `A Jornada Sagrada de ${topic}`,
+    `Descobrindo os Segredos de ${topic}`,
+    `${topic}: Práticas Ancestrais para o Mundo Moderno`,
+    `A Ciência Espiritual por trás de ${topic}`,
+    `Conectando-se com o Divino através de ${topic}`,
+    `Os Mistérios Revelados de ${topic}`
   ];
   
-  const middles = [
-    `Este guia oferece perspectivas valiosas sobre como integrar ${topic} no cotidiano.`,
-    `Veja como mestres espirituais aplicam ${topic} para alcançar harmonia.`,
-    `Descubra técnicas ancestrais e modernas relacionadas a ${topic}.`,
-    `Aprenda como ${topic} se relaciona com outras práticas espirituais.`,
-    `Entenda por que ${topic} é essencial para o equilíbrio energético.`
-  ];
-  
-  const endings = [
-    `Uma jornada transformadora para quem busca evolução através de ${topic}.`,
-    `Conteúdo essencial para praticantes e interessados em ${topic}.`,
-    `Material indispensável para aprofundar seu conhecimento sobre ${topic}.`,
-    `Reflexões profundas sobre a essência de ${topic} no mundo moderno.`,
-    `Uma abordagem acessível para iniciantes em ${topic}.`
-  ];
-  
-  const randomIntro = intros[Math.floor(Math.random() * intros.length)];
-  const randomMiddle = middles[Math.floor(Math.random() * middles.length)];
-  const randomEnding = endings[Math.floor(Math.random() * endings.length)];
-  
-  return `${randomIntro} ${randomMiddle} ${randomEnding}`;
+  return templates[Math.floor(Math.random() * templates.length)];
 }
 
-// Função para gerar um título aleatório
-function generateRandomTitle(topic: string): string {
-  const prefixes = [
-    "O Guia Completo sobre", 
-    "Descobrindo os Segredos de", 
-    "A Jornada Interior através de", 
-    "Práticas Essenciais de", 
-    "Transformação Espiritual com",
-    "A Sabedoria Ancestral de",
-    "Os Benefícios de",
-    "Iniciação aos Mistérios de",
-    "Desvendando os Símbolos de",
-    "A Arte Sagrada de"
+// Generate spiritual article excerpts
+function generateExcerpt(topic: string): string {
+  const templates = [
+    `Descubra como ${topic} pode transformar sua percepção do mundo e conectá-lo com sua essência divina. Este estudo profundo revela práticas milenares que foram preservadas por antigas tradições e agora estão disponíveis para seu crescimento espiritual.`,
+    
+    `Neste artigo exclusivo, exploramos as dimensões ocultas de ${topic} e como esta prática pode ser integrada ao seu cotidiano para promover cura, equilíbrio e expansão de consciência.`,
+    
+    `A sabedoria ancestral de ${topic} traduzida para a vida moderna. Aprenda técnicas que mestres espirituais têm utilizado por séculos para alcançar estados elevados de paz interior e conexão universal.`,
+    
+    `Uma jornada através dos aspectos místicos e científicos de ${topic}. Este estudo combina conhecimentos esotéricos com descobertas da física quântica, revelando como a espiritualidade e a ciência estão interconectadas.`,
+    
+    `${topic} como portal para dimensões superiores de existência. Este guia prático oferece métodos comprovados para elevar sua frequência vibracional e acessar estados ampliados de consciência.`
   ];
   
-  const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-  const capitalizedTopic = topic.charAt(0).toUpperCase() + topic.slice(1);
+  return templates[Math.floor(Math.random() * templates.length)];
+}
+
+// Generate content type (article, video, document)
+function generateContentType(): "article" | "video" | "document" {
+  const types: ("article" | "video" | "document")[] = ["article", "video", "document"];
+  return types[Math.floor(Math.random() * types.length)];
+}
+
+function generateYoutubeVideoLink(): string {
+  // Lista de IDs de vídeos do YouTube sobre espiritualidade
+  const youtubeIds = [
+    "cCFdM1k_JxI", // Meditação guiada
+    "9KHLTZaJcR8", // Música de meditação
+    "TPUTmXccllw", // Astrologia
+    "UR2iFZERLdc", // Espiritualidade e ciência
+    "lZ2h1k74JGc", // Tarô
+    "Dx2EgQ7wr1c", // Chakras
+    "4xpF-Bv9X0U", // Yoga
+    "GRlZnlLf9Qc", // Mindfulness
+    "L9XlBj6EzQA", // Reiki
+    "lkFzSxYnvao"  // Espiritualidade moderna
+  ];
   
-  return `${randomPrefix} ${capitalizedTopic}`;
+  const randomId = youtubeIds[Math.floor(Math.random() * youtubeIds.length)];
+  
+  return randomId;
 }
 
-// Função para gerar uma URL de thumbnail aleatória
-function generateRandomThumbnail(topic: string): string {
-  const imageKeywords = encodeURIComponent(`spiritual ${topic}`);
-  return `https://source.unsplash.com/featured/?${imageKeywords}`;
-}
-
-// Função para gerar um link aleatório
-function generateRandomLink(type: string): string {
+// Generate a spiritual content item
+function generateSpiritualContentItem() {
+  const topic = topics[Math.floor(Math.random() * topics.length)];
+  const source = sources[Math.floor(Math.random() * sources.length)];
+  const type = generateContentType();
+  
+  const title = generateTitle(topic);
+  const excerpt = generateExcerpt(topic);
+  
+  // Generate appropriate link based on content type
+  let link = "";
   if (type === "video") {
-    return "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // Link placeholder para vídeos
-  } else if (type === "document") {
-    return "https://exemplo.com/documento.pdf"; // Link placeholder para documentos
+    const videoId = generateYoutubeVideoLink();
+    link = `https://www.youtube.com/watch?v=${videoId}`;
   } else {
-    return "https://exemplo.com/artigo"; // Link placeholder para artigos
+    // For articles and documents - source URL + generated path
+    link = `${source.url}/artigos/${topic.toLowerCase().replace(/\s+/g, '-')}`;
   }
-}
-
-// Função para gerar um item de conteúdo aleatório
-function generateRandomContentItem() {
-  const randomTopic = SPIRITUAL_TOPICS[Math.floor(Math.random() * SPIRITUAL_TOPICS.length)];
-  const randomType = CONTENT_TYPES[Math.floor(Math.random() * CONTENT_TYPES.length)];
-  const randomSource = TRUSTED_SOURCES[Math.floor(Math.random() * TRUSTED_SOURCES.length)];
+  
+  // Set thumbnail based on content type
+  const randomImageIndex = Math.floor(Math.random() * imagePlaceholders.length);
+  const thumbnail = imagePlaceholders[randomImageIndex];
   
   return {
-    title: generateRandomTitle(randomTopic),
-    type: randomType,
-    thumbnail: generateRandomThumbnail(randomTopic),
-    excerpt: generateRandomExcerpt(randomTopic),
-    link: generateRandomLink(randomType),
-    source: randomSource.name,
-    sourceUrl: randomSource.url
+    title,
+    type,
+    thumbnail,
+    excerpt: `${excerpt} Fonte: ${source.name}`,
+    link
   };
 }
 
-// Função para gerar vários itens de conteúdo aleatório
-function generateRandomContent(count: number) {
-  const items = [];
-  for (let i = 0; i < count; i++) {
-    items.push(generateRandomContentItem());
-  }
-  return items;
-}
-
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  // Handle CORS preflight request
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
+  
   try {
-    // Updated: Parse request body for parameters instead of URL query params
-    let count = 3; // Default value
+    let count = 3; // Default number of items to generate
     
-    // Check if we have a body to parse
-    const contentType = req.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
+    // Get parameters from request (if any)
+    if (req.method === "POST") {
       try {
         const body = await req.json();
-        // If body contains count parameter, use it
-        if (body && body.count) {
-          count = parseInt(body.count);
+        if (body && body.count && typeof body.count === 'number') {
+          count = Math.min(Math.max(body.count, 1), 10); // Limit between 1 and 10
         }
-      } catch (e) {
-        console.error('Error parsing request body:', e);
+      } catch (error) {
+        console.error("Failed to parse request body:", error);
       }
-    } else {
-      // Fallback to URL params for backward compatibility
+    } else if (req.url.includes('?')) {
       const url = new URL(req.url);
-      const urlCount = url.searchParams.get('count');
-      if (urlCount) {
-        count = parseInt(urlCount);
+      const countParam = url.searchParams.get('count');
+      if (countParam && !isNaN(parseInt(countParam))) {
+        count = Math.min(Math.max(parseInt(countParam), 1), 10); // Limit between 1 and 10
       }
     }
     
-    // Ensure count is valid
-    count = Math.max(1, Math.min(count, 10)); // Between 1 and 10
+    // Generate the requested number of items
+    const items = [];
+    for (let i = 0; i < count; i++) {
+      items.push(generateSpiritualContentItem());
+    }
     
-    // Gerar conteúdo aleatório
-    const randomContent = generateRandomContent(count);
-    
-    // Resposta com o conteúdo gerado
     return new Response(
       JSON.stringify({
         success: true,
-        items: randomContent
+        items,
+        message: `Generated ${items.length} spiritual content items`
       }),
       { 
-        headers: { 
+        headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json' 
+          "Content-Type": "application/json"
         } 
       }
     );
   } catch (error) {
-    console.error('Error generating spiritual content:', error);
+    console.error("Error generating spiritual content:", error);
+    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || 'Erro ao gerar conteúdo espiritual'
+      JSON.stringify({
+        success: false,
+        error: "Failed to generate spiritual content"
       }),
       { 
         status: 500,
-        headers: { 
+        headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json' 
+          "Content-Type": "application/json"
         } 
       }
     );

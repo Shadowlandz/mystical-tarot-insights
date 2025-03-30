@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,9 +7,38 @@ import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import TarotCard from "@/components/TarotCard";
 import StudyCard from "@/components/StudyCard";
-import { studyData } from "@/data/tarotData";
+import { supabase } from "@/integrations/supabase/client";
+import { convertArrayToStudyCardProps } from "@/types/acervo";
 
 const Index = () => {
+  const [recentStudies, setRecentStudies] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch recent content from Supabase
+  useEffect(() => {
+    const fetchRecentContent = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('acervo_items')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(3);
+        
+        if (error) throw error;
+        
+        const convertedData = convertArrayToStudyCardProps(data || []);
+        setRecentStudies(convertedData);
+      } catch (error) {
+        console.error("Error fetching recent content:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecentContent();
+  }, []);
+
   // Cartas destacadas para a página inicial
   const featuredCards = [
     {
@@ -27,9 +57,6 @@ const Index = () => {
       image: "https://upload.wikimedia.org/wikipedia/commons/1/17/RWS_Tarot_19_Sun.jpg",
     }
   ];
-  
-  // Artigos recentes (3 primeiros)
-  const recentStudies = studyData.slice(0, 3);
   
   return (
     <div className="min-h-screen flex flex-col bg-background bg-stars">
@@ -124,19 +151,35 @@ const Index = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {recentStudies.map((study) => (
-              <StudyCard
-                key={study.id}
-                id={study.id}
-                title={study.title}
-                type={study.type as "article" | "video" | "document"}
-                thumbnail={study.thumbnail}
-                excerpt={study.excerpt}
-                link={study.link}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="mystic-card group h-full flex flex-col animate-pulse">
+                  <div className="h-40 bg-primary/10 rounded-t-md"></div>
+                  <div className="flex-1 p-4 flex flex-col">
+                    <div className="h-6 bg-primary/10 rounded-md mb-2 w-3/4"></div>
+                    <div className="h-4 bg-primary/10 rounded-md mb-2 w-full"></div>
+                    <div className="h-4 bg-primary/10 rounded-md mb-2 w-5/6"></div>
+                    <div className="h-4 bg-primary/10 rounded-md w-2/3 mt-2"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {recentStudies.map((study) => (
+                <StudyCard
+                  key={study.id}
+                  id={study.id}
+                  title={study.title}
+                  type={study.type as "article" | "video" | "document"}
+                  thumbnail={study.thumbnail}
+                  excerpt={study.excerpt}
+                  link={study.link}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
       

@@ -1,3 +1,4 @@
+
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -30,11 +31,16 @@ export default function StudyCard({ id, title, type, thumbnail, excerpt, link, c
   };
 
   const isVideo = type === "video";
+  const isArticleOrDocument = type === "article" || type === "document";
+  
+  // Determine the destination based on content type
   const destination = isVideo 
     ? `/acervo/video/${id}` 
-    : link;
+    : isArticleOrDocument
+      ? `/acervo/content/${id}`
+      : link;
   
-  const isExternalLink = !isVideo && !link.startsWith('/');
+  const isExternalLink = !isVideo && !isArticleOrDocument && !link.startsWith('/');
   
   const LinkComponent = isExternalLink 
     ? ({ children }: { children: React.ReactNode }) => (
@@ -75,7 +81,7 @@ export default function StudyCard({ id, title, type, thumbnail, excerpt, link, c
         <p className="text-muted-foreground text-sm mb-4 line-clamp-3">{excerpt}</p>
         
         <LinkComponent>
-          {isVideo ? "Assistir vídeo" : "Ler mais"}
+          {isVideo ? "Assistir vídeo" : isArticleOrDocument ? "Ler mais" : "Acessar conteúdo"}
           {isExternalLink ? (
             <ExternalLink className="ml-1 h-4 w-4" />
           ) : (

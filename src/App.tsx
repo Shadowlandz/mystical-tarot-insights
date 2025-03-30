@@ -10,6 +10,7 @@ import AcervoPage from "./pages/AcervoPage";
 import SobrePage from "./pages/SobrePage";
 import NotFound from "./pages/NotFound";
 import VideoViewPage from "./pages/VideoViewPage";
+import ContentViewPage from "./pages/ContentViewPage";
 
 // Admin Pages
 import AdminLoginPage from "./pages/AdminLoginPage";
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/tarot" element={<TarotPage />} />
           <Route path="/acervo" element={<AcervoPage />} />
           <Route path="/acervo/video/:id" element={<VideoViewPage />} />
+          <Route path="/acervo/content/:id" element={<ContentViewPage />} />
           <Route path="/sobre" element={<SobrePage />} />
           
           {/* Rotas administrativas */}
