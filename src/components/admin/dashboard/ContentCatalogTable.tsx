@@ -97,17 +97,18 @@ export const ContentCatalogTable = ({ items }: ContentCatalogTableProps) => {
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      as="a"
+                    {/* Replace the Button with a direct anchor tag */}
+                    <a
                       href={item.link}
                       target="_blank"
                       rel="noopener noreferrer"
                       title="Abrir fonte original"
+                      className={Button.toString() !== '[object Object]' ? 
+                        buttonVariants({ variant: 'ghost', size: 'icon' }) : 
+                        'inline-flex items-center justify-center h-10 w-10 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground'}
                     >
                       <ExternalLink className="h-4 w-4" />
-                    </Button>
+                    </a>
                   </div>
                 </TableCell>
               </TableRow>
