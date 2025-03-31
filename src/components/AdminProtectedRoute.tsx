@@ -21,14 +21,14 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
       const { data } = await supabase.auth.getSession();
       
       if (data.session) {
-        // Verificar se o usuário é administrador
+        // Verificar se o usuário tem role 'admin'
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('is_admin')
+          .select('role')
           .eq('id', data.session.user.id)
           .single();
         
-        if (profileData?.is_admin) {
+        if (profileData?.role === 'admin') {
           localStorage.setItem("adminAuth", "true");
           localStorage.setItem("adminLastActivity", Date.now().toString());
           setIsAuthenticated(true);

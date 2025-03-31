@@ -95,14 +95,14 @@ const AdminLoginPage = () => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        // Verificar se o usuário é administrador
+        // Verificar se o usuário tem role 'admin'
         const { data: profileData, error } = await supabase
           .from('profiles')
-          .select('is_admin')
+          .select('role')
           .eq('id', data.session.user.id)
           .single();
         
-        if (profileData?.is_admin) {
+        if (profileData?.role === 'admin') {
           localStorage.setItem("adminAuth", "true");
           localStorage.setItem("adminLastActivity", Date.now().toString());
           const returnUrl = new URLSearchParams(location.search).get("returnUrl");
@@ -138,16 +138,16 @@ const AdminLoginPage = () => {
       if (error) throw error;
       
       if (data.user) {
-        // Verificar se o usuário é administrador
+        // Verificar se o usuário tem role 'admin'
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('is_admin')
+          .select('role')
           .eq('id', data.user.id)
           .single();
         
         if (profileError) throw profileError;
         
-        if (profileData?.is_admin) {
+        if (profileData?.role === 'admin') {
           // Login bem-sucedido como administrador
           localStorage.setItem("adminAuth", "true");
           localStorage.setItem("adminLastActivity", Date.now().toString());

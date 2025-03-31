@@ -51,6 +51,7 @@ export type Database = {
           created_at: string
           id: string
           is_admin: boolean | null
+          role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           username: string | null
         }
@@ -59,6 +60,7 @@ export type Database = {
           created_at?: string
           id: string
           is_admin?: boolean | null
+          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username?: string | null
         }
@@ -67,6 +69,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_admin?: boolean | null
+          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username?: string | null
         }
@@ -80,7 +83,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "premium" | "user" | "mod"
     }
     CompositeTypes: {
       [_ in never]: never
