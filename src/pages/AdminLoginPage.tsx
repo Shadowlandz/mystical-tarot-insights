@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Lock, User, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 import {
   Form,
@@ -22,21 +23,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Esquema de validação com mensagens em português
 const formSchema = z.object({
-  username: z.string().min(3, {
-    message: "Nome de usuário deve ter pelo menos 3 caracteres",
+  email: z.string().email({
+    message: "Digite um email válido",
   }),
   password: z.string().min(6, {
     message: "Senha deve ter pelo menos 6 caracteres",
   }),
 });
-
-// Configurações de autenticação (em produção, isso seria armazenado no servidor)
-const ADMIN_CREDENTIALS = {
-  username: "admin",
-  password: "admin123",
-  maxAttempts: 5,
-  lockoutTime: 15 * 60 * 1000, // 15 minutos em milissegundos
-};
 
 const AdminLoginPage = () => {
   const { toast } = useToast();
@@ -44,10 +37,13 @@ const AdminLoginPage = () => {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [attempts, setAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [lockExpiry, setLockExpiry] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState<string>(""); 
+  const [timeLeft, setTimeLeft] = useState<string>("");
+  const [attempts, setAttempts] = useState(0);
+  
+  const MAX_ATTEMPTS = 5;
+  const LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutos em milissegundos
 
   // Verificar se a conta está bloqueada ao carregar
   useEffect(() => {
@@ -96,17 +92,32 @@ const AdminLoginPage = () => {
 
   // Verificar se o usuário já está autenticado
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem("adminAuth") === "true";
-    if (isAuthenticated) {
-      const returnUrl = new URLSearchParams(location.search).get("returnUrl");
-      navigate(returnUrl || "/admin/dashboard");
-    }
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        // Verificar se o usuário é administrador
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', data.session.user.id)
+          .single();
+        
+        if (profileData?.is_admin) {
+          localStorage.setItem("adminAuth", "true");
+          localStorage.setItem("adminLastActivity", Date.now().toString());
+          const returnUrl = new URLSearchParams(location.search).get("returnUrl");
+          navigate(returnUrl || "/admin/dashboard");
+        }
+      }
+    };
+    
+    checkSession();
   }, [navigate, location.search]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -118,60 +129,81 @@ const AdminLoginPage = () => {
     setLoginError(null);
     
     try {
-      // Simulação de atraso para parecer que está verificando com um servidor
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Tentar autenticar com Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
       
-      // Verificar credenciais (em produção, isso seria uma chamada API)
-      if (values.username === ADMIN_CREDENTIALS.username && 
-          values.password === ADMIN_CREDENTIALS.password) {
+      if (error) throw error;
+      
+      if (data.user) {
+        // Verificar se o usuário é administrador
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', data.user.id)
+          .single();
         
-        // Login bem-sucedido
-        localStorage.setItem("adminAuth", "true");
-        localStorage.setItem("adminLastActivity", Date.now().toString());
-        localStorage.removeItem("adminLoginAttempts");
-        localStorage.removeItem("adminLockExpiry");
+        if (profileError) throw profileError;
         
-        toast({
-          title: "Login bem-sucedido",
-          description: "Bem-vindo ao painel administrativo",
-        });
-        
-        // Redirecionar para a página solicitada ou para o dashboard
-        const returnUrl = new URLSearchParams(location.search).get("returnUrl");
-        navigate(returnUrl || "/admin/dashboard");
-      } else {
-        // Login falhou
-        const newAttempts = attempts + 1;
-        setAttempts(newAttempts);
-        localStorage.setItem("adminLoginAttempts", newAttempts.toString());
-        
-        // Verificar se deve bloquear
-        if (newAttempts >= ADMIN_CREDENTIALS.maxAttempts) {
-          const expiryTime = Date.now() + ADMIN_CREDENTIALS.lockoutTime;
-          setIsLocked(true);
-          setLockExpiry(expiryTime);
-          localStorage.setItem("adminLockExpiry", expiryTime.toString());
+        if (profileData?.is_admin) {
+          // Login bem-sucedido como administrador
+          localStorage.setItem("adminAuth", "true");
+          localStorage.setItem("adminLastActivity", Date.now().toString());
+          localStorage.removeItem("adminLoginAttempts");
+          localStorage.removeItem("adminLockExpiry");
           
-          setLoginError(`Conta bloqueada por muitas tentativas. Tente novamente em 15 minutos.`);
+          toast({
+            title: "Login bem-sucedido",
+            description: "Bem-vindo ao painel administrativo",
+          });
+          
+          // Redirecionar para a página solicitada ou para o dashboard
+          const returnUrl = new URLSearchParams(location.search).get("returnUrl");
+          navigate(returnUrl || "/admin/dashboard");
         } else {
-          setLoginError(`Credenciais inválidas. Tentativas restantes: ${ADMIN_CREDENTIALS.maxAttempts - newAttempts}`);
+          // Usuário não é administrador
+          await supabase.auth.signOut();
+          incrementAttempts();
+          setLoginError("Você não tem permissões de administrador.");
+          
+          toast({
+            title: "Acesso negado",
+            description: "Você não tem permissões de administrador.",
+            variant: "destructive",
+          });
         }
-        
-        toast({
-          title: "Erro de autenticação",
-          description: "Credenciais inválidas. Tente novamente.",
-          variant: "destructive",
-        });
       }
     } catch (error) {
+      console.error("Erro no login:", error);
+      incrementAttempts();
+      
       toast({
-        title: "Erro de login",
-        description: "Ocorreu um erro ao tentar fazer login.",
+        title: "Erro de autenticação",
+        description: "Credenciais inválidas. Tente novamente.",
         variant: "destructive",
       });
-      console.error("Erro no login:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const incrementAttempts = () => {
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
+    localStorage.setItem("adminLoginAttempts", newAttempts.toString());
+    
+    // Verificar se deve bloquear
+    if (newAttempts >= MAX_ATTEMPTS) {
+      const expiryTime = Date.now() + LOCKOUT_TIME;
+      setIsLocked(true);
+      setLockExpiry(expiryTime);
+      localStorage.setItem("adminLockExpiry", expiryTime.toString());
+      
+      setLoginError(`Conta bloqueada por muitas tentativas. Tente novamente em 15 minutos.`);
+    } else {
+      setLoginError(`Credenciais inválidas. Tentativas restantes: ${MAX_ATTEMPTS - newAttempts}`);
     }
   };
 
@@ -199,16 +231,16 @@ const AdminLoginPage = () => {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="username"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome de Usuário</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <span className="absolute left-3 top-3 text-gray-400">
                           <User className="h-4 w-4" />
                         </span>
-                        <Input className="pl-9" placeholder="admin" {...field} disabled={isLocked} />
+                        <Input className="pl-9" placeholder="admin@exemplo.com" {...field} disabled={isLocked} />
                       </div>
                     </FormControl>
                     <FormMessage />
