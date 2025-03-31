@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, FileText, Video, BookOpen, RefreshCw, Loader2 } from "lucide-react";
@@ -70,27 +71,29 @@ const AdminDashboardPage = () => {
   const generateSpiritualContent = async () => {
     setIsGenerating(true);
     try {
-      // Usando a função alternativa de geração local em vez da edge function
-      const items = generateLocalSpiritualContent(3);
+      // Gerar conteúdo localmente para evitar problemas de permissão
+      const generatedContent = generateLocalSpiritualContent(3);
+      
+      // Preparar os itens para inserção no Supabase
+      const itemsToInsert = generatedContent.map(item => ({
+        title: item.title,
+        type: item.type,
+        thumbnail: item.thumbnail,
+        excerpt: item.excerpt,
+        link: item.link,
+        views: 0
+      }));
       
       // Inserir os itens no banco de dados
-      const { data: insertedData, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('acervo_items')
-        .insert(items.map(item => ({
-          title: item.title,
-          type: item.type,
-          thumbnail: item.thumbnail,
-          excerpt: item.excerpt,
-          link: item.link,
-          views: 0
-        })))
-        .select();
+        .insert(itemsToInsert);
       
       if (insertError) throw insertError;
       
       toast({
         title: "Conteúdo gerado",
-        description: `${items.length} novos itens de conteúdo espiritual foram adicionados.`,
+        description: `${generatedContent.length} novos itens de conteúdo espiritual foram adicionados.`,
       });
       
       // Atualizar os dados
