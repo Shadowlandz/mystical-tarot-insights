@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, FileText, Video, BookOpen, RefreshCw, Loader2 } from "lucide-react";
@@ -9,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { convertArrayToStudyCardProps } from "@/types/acervo";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { generateLocalSpiritualContent } from "@/utils/spiritualContentGenerator";
 
 const AdminDashboardPage = () => {
   const { toast } = useToast();
@@ -70,42 +70,36 @@ const AdminDashboardPage = () => {
   const generateSpiritualContent = async () => {
     setIsGenerating(true);
     try {
-      // Fix: Update the parameters format for the edge function
-      const { data, error } = await supabase.functions.invoke('spiritual-content', {
-        body: { count: 3 }
-      });
-
-      if (error) throw error;
+      // Usando a função alternativa de geração local em vez da edge function
+      const items = generateLocalSpiritualContent(3);
       
-      if (data && data.success && data.items) {
-        // Inserir os itens no banco de dados
-        const { data: insertedData, error: insertError } = await supabase
-          .from('acervo_items')
-          .insert(data.items.map(item => ({
-            title: item.title,
-            type: item.type,
-            thumbnail: item.thumbnail,
-            excerpt: item.excerpt,
-            link: item.link,
-            views: 0
-          })))
-          .select();
-        
-        if (insertError) throw insertError;
-        
-        toast({
-          title: "Conteúdo gerado",
-          description: `${data.items.length} novos itens de conteúdo espiritual foram adicionados.`,
-        });
-        
-        // Atualizar os dados
-        fetchData();
-      }
+      // Inserir os itens no banco de dados
+      const { data: insertedData, error: insertError } = await supabase
+        .from('acervo_items')
+        .insert(items.map(item => ({
+          title: item.title,
+          type: item.type,
+          thumbnail: item.thumbnail,
+          excerpt: item.excerpt,
+          link: item.link,
+          views: 0
+        })))
+        .select();
+      
+      if (insertError) throw insertError;
+      
+      toast({
+        title: "Conteúdo gerado",
+        description: `${items.length} novos itens de conteúdo espiritual foram adicionados.`,
+      });
+      
+      // Atualizar os dados
+      fetchData();
     } catch (error) {
       console.error("Error generating content:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível gerar conteúdo espiritual.",
+        description: "Não foi possível gerar conteúdo espiritual: " + (error instanceof Error ? error.message : String(error)),
         variant: "destructive",
       });
     } finally {
