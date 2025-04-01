@@ -18,6 +18,8 @@ import AdminLayout from "./components/AdminLayout";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminAcervoPage from "./pages/AdminAcervoPage";
+import AdminVideosPage from "./pages/AdminVideosPage";
+import AdminArticlesPage from "./pages/AdminArticlesPage";
 import AdminGeminiPage from "./pages/AdminGeminiPage";
 import AdminSecurityPage from "./pages/AdminSecurityPage";
 
@@ -47,6 +49,8 @@ const App = () => (
           }>
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="acervo" element={<AdminAcervoPage />} />
+            <Route path="videos" element={<AdminVideosPage />} />
+            <Route path="artigos" element={<AdminArticlesPage />} />
             <Route path="gemini" element={<AdminGeminiPage />} />
             <Route path="seguranca" element={<AdminSecurityPage />} />
             {/* Adicione mais rotas administrativas aqui */}

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, Link, Outlet } from "react-router-dom";
+import { useNavigate, Link, Outlet, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
   Library, 
@@ -33,6 +33,7 @@ import {
 
 const AdminLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
 
@@ -84,7 +85,11 @@ const AdminLayout = () => {
                 <SidebarMenu>
                   {menuItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild tooltip={item.title}>
+                      <SidebarMenuButton 
+                        asChild 
+                        tooltip={item.title}
+                        active={location.pathname === item.path}
+                      >
                         <Link to={item.path}>
                           <item.icon className="h-5 w-5" />
                           <span>{item.title}</span>
