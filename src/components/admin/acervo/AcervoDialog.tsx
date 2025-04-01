@@ -17,13 +17,17 @@ interface AcervoDialogProps {
   setOpen: (open: boolean) => void;
   onSubmit: (values: AcervoFormValues) => void;
   item?: StudyCardProps;
+  defaultType?: string;
+  lockType?: boolean;
 }
 
 export function AcervoDialog({
   open,
   setOpen,
   onSubmit,
-  item
+  item,
+  defaultType,
+  lockType = false
 }: AcervoDialogProps) {
   // Convert StudyCardProps to AcervoFormValues if needed
   const defaultValues = item ? {
@@ -32,6 +36,12 @@ export function AcervoDialog({
     thumbnail: item.thumbnail,
     excerpt: item.excerpt,
     link: item.link,
+  } : defaultType ? {
+    title: "",
+    type: defaultType,
+    thumbnail: "",
+    excerpt: "",
+    link: "",
   } : undefined;
 
   const isEditing = !!item;
@@ -56,6 +66,7 @@ export function AcervoDialog({
           onSubmit={onSubmit}
           onCancel={handleCancel}
           isEditing={isEditing}
+          lockType={lockType}
         />
       </DialogContent>
     </Dialog>

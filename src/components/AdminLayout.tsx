@@ -88,7 +88,7 @@ const AdminLayout = () => {
                       <SidebarMenuButton 
                         asChild 
                         tooltip={item.title}
-                        active={location.pathname === item.path}
+                        isActive={location.pathname === item.path}
                       >
                         <Link to={item.path}>
                           <item.icon className="h-5 w-5" />
