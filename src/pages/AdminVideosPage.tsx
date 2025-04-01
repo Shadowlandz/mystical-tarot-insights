@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, RefreshCw } from "lucide-react";
@@ -79,7 +78,6 @@ const AdminVideosPage = () => {
       );
     }
     
-    // Aplicar ordenação
     if (sortBy === "recent") {
       filtered.sort((a, b) => new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime());
     } else if (sortBy === "views") {
@@ -93,10 +91,9 @@ const AdminVideosPage = () => {
 
   const handleAddItem = async (formValues) => {
     try {
-      // Garantir que o tipo é vídeo
       const newItem = {
         title: formValues.title,
-        type: "video",
+        type: "video" as ContentType,
         thumbnail: formValues.thumbnail,
         excerpt: formValues.excerpt,
         link: formValues.link,
@@ -105,14 +102,17 @@ const AdminVideosPage = () => {
       const { data, error } = await supabase
         .from('acervo_items')
         .insert(newItem)
-        .select()
-        .single();
+        .select();
       
       if (error) throw error;
       
-      const convertedItem = convertToStudyCardProps(data);
+      const insertedItem = data && data.length > 0 ? data[0] : null;
       
-      setItems(prevItems => [convertedItem, ...prevItems]);
+      if (insertedItem) {
+        const convertedItem = convertToStudyCardProps(insertedItem);
+        setItems(prevItems => [convertedItem, ...prevItems]);
+      }
+      
       setIsAddDialogOpen(false);
       
       toast({
@@ -123,7 +123,7 @@ const AdminVideosPage = () => {
       console.error("Error adding video:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível adicionar o vídeo.",
+        description: "Não foi possível adicionar o vídeo: " + (error.message || "Erro desconhecido"),
         variant: "destructive",
       });
     }
@@ -156,7 +156,7 @@ const AdminVideosPage = () => {
         .from('acervo_items')
         .update({
           title: updatedItem.title,
-          type: "video", // Garantir que continua sendo vídeo
+          type: "video",
           thumbnail: updatedItem.thumbnail,
           excerpt: updatedItem.excerpt,
           link: updatedItem.link,
@@ -233,7 +233,6 @@ const AdminVideosPage = () => {
   };
 
   const handlePreviewVideo = (item: StudyCardProps) => {
-    // Incrementar visualizações
     console.log("Visualizando vídeo:", item.title);
   };
 
@@ -315,7 +314,6 @@ const AdminVideosPage = () => {
         </>
       )}
 
-      {/* Modal de adição com tipo pré-definido como vídeo */}
       <AcervoDialog
         open={isAddDialogOpen}
         setOpen={setIsAddDialogOpen}
@@ -323,7 +321,6 @@ const AdminVideosPage = () => {
         defaultType="video"
       />
 
-      {/* Modal de edição */}
       <AcervoDialog
         open={!!editingItem}
         setOpen={() => setEditingItem(null)}
@@ -332,7 +329,6 @@ const AdminVideosPage = () => {
         lockType={true}
       />
 
-      {/* Modal de confirmação de exclusão */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
