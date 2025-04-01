@@ -131,19 +131,15 @@ const AdminVideosPage = () => {
 
   const handleEditItem = async (updatedItem: StudyCardProps) => {
     try {
-      const originalItem = items.find(item => item.id === updatedItem.id);
-      if (!originalItem) {
-        throw new Error("Item não encontrado");
-      }
-      
-      const { data: dbItems, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from('acervo_items')
-        .select('*')
+        .select('id')
+        .eq('type', 'video')
         .limit(100);
       
-      if (fetchError) throw fetchError;
+      if (error) throw error;
       
-      const dbItem = dbItems.find(item => {
+      const dbItem = data.find(item => {
         const convertedId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || 0;
         return convertedId === updatedItem.id;
       });
@@ -152,7 +148,7 @@ const AdminVideosPage = () => {
         throw new Error("Item não encontrado no banco de dados");
       }
       
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('acervo_items')
         .update({
           title: updatedItem.title,
@@ -163,7 +159,7 @@ const AdminVideosPage = () => {
         })
         .eq('id', dbItem.id);
       
-      if (error) throw error;
+      if (updateError) throw updateError;
       
       setItems(prevItems => 
         prevItems.map(item => 
@@ -181,7 +177,7 @@ const AdminVideosPage = () => {
       console.error("Error updating video:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o vídeo.",
+        description: "Não foi possível atualizar o vídeo: " + (error.message || "Erro desconhecido"),
         variant: "destructive",
       });
     }
@@ -191,14 +187,15 @@ const AdminVideosPage = () => {
     if (!deletingId) return;
     
     try {
-      const { data: dbItems, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from('acervo_items')
-        .select('*')
+        .select('id')
+        .eq('type', 'video')
         .limit(100);
       
-      if (fetchError) throw fetchError;
+      if (error) throw error;
       
-      const dbItem = dbItems.find(item => {
+      const dbItem = data.find(item => {
         const convertedId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || 0;
         return convertedId === deletingId;
       });
@@ -207,12 +204,12 @@ const AdminVideosPage = () => {
         throw new Error("Item não encontrado no banco de dados");
       }
       
-      const { error } = await supabase
+      const { error: deleteError } = await supabase
         .from('acervo_items')
         .delete()
         .eq('id', dbItem.id);
       
-      if (error) throw error;
+      if (deleteError) throw deleteError;
       
       setItems(prevItems => prevItems.filter(item => item.id !== deletingId));
       setIsDeleteDialogOpen(false);
@@ -226,7 +223,7 @@ const AdminVideosPage = () => {
       console.error("Error deleting video:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível excluir o vídeo.",
+        description: "Não foi possível excluir o vídeo: " + (error.message || "Erro desconhecido"),
         variant: "destructive",
       });
     }
