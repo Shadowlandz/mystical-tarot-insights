@@ -10,7 +10,8 @@ import {
   LogOut, 
   Menu, 
   ChevronLeft,
-  Settings
+  Settings,
+  Shield
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ const AdminLayout = () => {
     { title: "Artigos", path: "/admin/artigos", icon: FileText },
     { title: "Vídeos", path: "/admin/videos", icon: Video },
     { title: "Analytics", path: "/admin/analytics", icon: Activity },
+    { title: "Segurança", path: "/admin/seguranca", icon: Shield },
     { title: "Configurações", path: "/admin/configuracoes", icon: Settings },
   ];
 

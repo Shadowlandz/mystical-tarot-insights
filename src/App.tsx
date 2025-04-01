@@ -19,6 +19,7 @@ import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminAcervoPage from "./pages/AdminAcervoPage";
 import AdminGeminiPage from "./pages/AdminGeminiPage";
+import AdminSecurityPage from "./pages/AdminSecurityPage";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="acervo" element={<AdminAcervoPage />} />
             <Route path="gemini" element={<AdminGeminiPage />} />
+            <Route path="seguranca" element={<AdminSecurityPage />} />
             {/* Adicione mais rotas administrativas aqui */}
           </Route>
           
