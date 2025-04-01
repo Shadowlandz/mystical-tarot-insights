@@ -11,13 +11,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AcervoForm, AcervoFormValues } from "./AcervoForm";
+import { ContentType } from "../acervo/AcervoTypeUtils";
 
 interface AcervoDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
   onSubmit: (values: AcervoFormValues) => void;
   item?: StudyCardProps;
-  defaultType?: "article" | "video" | "document";
+  defaultType?: ContentType;
   lockType?: boolean;
 }
 

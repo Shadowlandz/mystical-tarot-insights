@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, RefreshCw } from "lucide-react";
@@ -25,6 +24,7 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { convertArrayToStudyCardProps, convertToStudyCardProps } from "@/types/acervo";
+import { ContentType } from "@/components/admin/acervo/AcervoTypeUtils";
 
 const AdminArticlesPage = () => {
   const { toast } = useToast();
@@ -37,7 +37,7 @@ const AdminArticlesPage = () => {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("recent");
-  const [activeTab, setActiveTab] = useState("article");
+  const [activeTab, setActiveTab] = useState<ContentType>("article");
 
   useEffect(() => {
     fetchItems();
@@ -80,7 +80,6 @@ const AdminArticlesPage = () => {
       );
     }
     
-    // Aplicar ordenação
     if (sortBy === "recent") {
       filtered.sort((a, b) => new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime());
     } else if (sortBy === "views") {
@@ -94,7 +93,6 @@ const AdminArticlesPage = () => {
 
   const handleAddItem = async (formValues) => {
     try {
-      // Garantir que o tipo é article
       const newItem = {
         title: formValues.title,
         type: activeTab,
@@ -159,7 +157,7 @@ const AdminArticlesPage = () => {
         .from('acervo_items')
         .update({
           title: updatedItem.title,
-          type: activeTab, // Garantir que continua sendo o mesmo tipo
+          type: activeTab,
           thumbnail: updatedItem.thumbnail,
           excerpt: updatedItem.excerpt,
           link: updatedItem.link,
@@ -335,7 +333,6 @@ const AdminArticlesPage = () => {
         </>
       )}
 
-      {/* Modal de adição com tipo pré-definido */}
       <AcervoDialog
         open={isAddDialogOpen}
         setOpen={setIsAddDialogOpen}
@@ -343,7 +340,6 @@ const AdminArticlesPage = () => {
         defaultType={activeTab}
       />
 
-      {/* Modal de edição */}
       <AcervoDialog
         open={!!editingItem}
         setOpen={() => setEditingItem(null)}
@@ -352,7 +348,6 @@ const AdminArticlesPage = () => {
         lockType={true}
       />
 
-      {/* Modal de confirmação de exclusão */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

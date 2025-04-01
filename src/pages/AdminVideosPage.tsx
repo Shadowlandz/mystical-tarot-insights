@@ -24,6 +24,7 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { convertArrayToStudyCardProps, convertToStudyCardProps } from "@/types/acervo";
+import { ContentType } from "@/components/admin/acervo/AcervoTypeUtils";
 
 const AdminVideosPage = () => {
   const { toast } = useToast();
