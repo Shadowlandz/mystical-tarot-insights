@@ -25,10 +25,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { getVideoThumbnail, isVideoUrl } from "@/utils/videoUtils";
 import { validateLink, LinkValidationResult } from "@/utils/linkValidator";
+import { fetchVideoMetadata } from "@/utils/videoMetadataFetcher";
 
 // Form validation schema
 export const acervoFormSchema = z.object({
@@ -56,9 +57,10 @@ interface AcervoFormProps {
   onSubmit: (values: AcervoFormValues) => void;
   onCancel: () => void;
   isEditing: boolean;
+  lockType?: boolean;
 }
 
-export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: AcervoFormProps) {
+export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockType = false }: AcervoFormProps) {
   const form = useForm<AcervoFormValues>({
     resolver: zodResolver(acervoFormSchema),
     defaultValues: defaultValues || {
@@ -78,6 +80,7 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
   // Estado para controlar a validação do link
   const [linkValidation, setLinkValidation] = useState<LinkValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
 
   // Detectar thumbnail automaticamente quando for um vídeo
   useEffect(() => {
@@ -118,6 +121,59 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
       toast.error("Erro ao validar link: " + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsValidating(false);
+    }
+  };
+
+  // Nova função para buscar metadados do vídeo
+  const handleFetchMetadata = async () => {
+    const currentLink = form.getValues().link;
+    if (!currentLink) {
+      toast.error("Insira um link de vídeo para extrair metadados");
+      return;
+    }
+
+    if (type !== "video") {
+      toast.error("A extração automática de metadados só funciona para vídeos");
+      return;
+    }
+    
+    setIsFetchingMetadata(true);
+    
+    try {
+      toast.info("Buscando metadados do vídeo...");
+      const metadata = await fetchVideoMetadata(currentLink);
+      
+      let fieldsUpdated = 0;
+      
+      if (metadata.thumbnail && (!currentThumbnail || currentThumbnail === "")) {
+        form.setValue("thumbnail", metadata.thumbnail, { shouldValidate: true });
+        fieldsUpdated++;
+      }
+      
+      if (metadata.title && form.getValues().title === "") {
+        form.setValue("title", metadata.title, { shouldValidate: true });
+        fieldsUpdated++;
+      }
+      
+      if (metadata.description && form.getValues().excerpt === "") {
+        // Truncate if too long
+        const excerpt = metadata.description.length > 500 
+          ? metadata.description.substring(0, 497) + "..." 
+          : metadata.description;
+        
+        form.setValue("excerpt", excerpt, { shouldValidate: true });
+        fieldsUpdated++;
+      }
+      
+      if (fieldsUpdated > 0) {
+        toast.success(`Metadados extraídos com sucesso! ${fieldsUpdated} campos atualizados.`);
+      } else {
+        toast.warning("Não foi possível extrair metadados deste vídeo.");
+      }
+    } catch (error) {
+      toast.error("Erro ao extrair metadados: " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsFetchingMetadata(false);
     }
   };
   
@@ -172,6 +228,7 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
               <Select 
                 onValueChange={field.onChange} 
                 defaultValue={field.value}
+                disabled={lockType}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -199,11 +256,28 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
                 <FormControl className="flex-1">
                   <Input placeholder="https://example.com/content" {...field} />
                 </FormControl>
+                {type === "video" && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleFetchMetadata}
+                    disabled={isFetchingMetadata || !field.value}
+                    className="shrink-0"
+                  >
+                    {isFetchingMetadata ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Extrair Metadados
+                  </Button>
+                )}
                 <Button 
                   type="button" 
                   variant="secondary" 
                   onClick={handleValidateLink}
                   disabled={isValidating || !field.value}
+                  className="shrink-0"
                 >
                   {isValidating ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -290,7 +364,7 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing }: Ace
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={isValidating}>
+          <Button type="submit" disabled={isValidating || isFetchingMetadata}>
             {isEditing ? "Atualizar" : "Adicionar"}
           </Button>
         </DialogFooter>

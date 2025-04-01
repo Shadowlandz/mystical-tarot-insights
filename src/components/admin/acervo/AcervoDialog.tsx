@@ -17,7 +17,7 @@ interface AcervoDialogProps {
   setOpen: (open: boolean) => void;
   onSubmit: (values: AcervoFormValues) => void;
   item?: StudyCardProps;
-  defaultType?: string;
+  defaultType?: "article" | "video" | "document";
   lockType?: boolean;
 }
 
