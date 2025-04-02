@@ -1,64 +1,20 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
+import { useForm, useWatch, Form, FormProvider } from "react-hook-form";
 import { useEffect, useState } from "react";
-
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { getVideoThumbnail, isVideoUrl } from "@/utils/videoUtils";
 import { validateLink, LinkValidationResult } from "@/utils/linkValidator";
-import { fetchVideoMetadata } from "@/utils/videoMetadataFetcher";
-
-// Form validation schema with conditional validation for excerpt
-export const acervoFormSchema = z.object({
-  title: z.string().min(3, {
-    message: "O título deve ter pelo menos 3 caracteres",
-  }),
-  type: z.enum(["article", "video", "document"], {
-    required_error: "Selecione um tipo de conteúdo",
-  }),
-  thumbnail: z.string().url({
-    message: "Por favor, insira uma URL válida para a miniatura",
-  }),
-  excerpt: z.string().min(10, {
-    message: "O resumo deve ter pelo menos 10 caracteres",
-  }).optional().refine((val, ctx) => {
-    // Make excerpt optional only for videos
-    if (ctx.parent.type !== 'video' && (!val || val.length < 10)) {
-      return false;
-    }
-    return true;
-  }, {
-    message: "O resumo é obrigatório e deve ter pelo menos 10 caracteres",
-  }),
-  link: z.string().url({
-    message: "Por favor, insira uma URL válida para o conteúdo",
-  }),
-});
-
-export type AcervoFormValues = z.infer<typeof acervoFormSchema>;
+import { isVideoUrl, getVideoThumbnail } from "@/utils/videoUtils";
+import { acervoFormSchema, AcervoFormValues } from "./form-schema";
+import { TitleField } from "./form/TitleField";
+import { ContentTypeSelector } from "./form/ContentTypeSelector";
+import { LinkValidationSection } from "./form/LinkValidationSection";
+import { ThumbnailPreview } from "./form/ThumbnailPreview";
+import { ExcerptField } from "./form/ExcerptField";
+import { extractVideoMetadata } from "./form/MetadataExtractor";
 
 interface AcervoFormProps {
   defaultValues?: AcervoFormValues;
@@ -68,7 +24,13 @@ interface AcervoFormProps {
   lockType?: boolean;
 }
 
-export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockType = false }: AcervoFormProps) {
+export function AcervoForm({ 
+  defaultValues, 
+  onSubmit, 
+  onCancel, 
+  isEditing, 
+  lockType = false 
+}: AcervoFormProps) {
   const form = useForm<AcervoFormValues>({
     resolver: zodResolver(acervoFormSchema),
     defaultValues: defaultValues || {
@@ -80,7 +42,7 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockT
     },
   });
 
-  // Observar os campos 'type' e 'link' para detectar automaticamente a thumbnail
+  // Observe form fields for metadata extraction
   const type = useWatch({ control: form.control, name: "type" });
   const link = useWatch({ control: form.control, name: "link" });
   const currentThumbnail = useWatch({ control: form.control, name: "thumbnail" });
@@ -97,35 +59,11 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockT
         if (!currentThumbnail || form.getValues().title === "" || form.getValues().excerpt === "") {
           setIsFetchingMetadata(true);
           try {
-            const metadata = await fetchVideoMetadata(link);
-            
-            let fieldsUpdated = 0;
-            
-            if (metadata.thumbnail && (!currentThumbnail || currentThumbnail === "")) {
-              form.setValue("thumbnail", metadata.thumbnail, { shouldValidate: true });
-              fieldsUpdated++;
-            }
-            
-            if (metadata.title && form.getValues().title === "") {
-              form.setValue("title", metadata.title, { shouldValidate: true });
-              fieldsUpdated++;
-            }
-            
-            if (metadata.description && form.getValues().excerpt === "") {
-              // Truncate if too long
-              const excerpt = metadata.description.length > 500 
-                ? metadata.description.substring(0, 497) + "..." 
-                : metadata.description;
-              
-              form.setValue("excerpt", excerpt, { shouldValidate: true });
-              fieldsUpdated++;
-            }
+            const fieldsUpdated = await extractVideoMetadata(link, form);
             
             if (fieldsUpdated > 0) {
               toast.success(`Metadados extraídos automaticamente (${fieldsUpdated} campos)`);
             }
-          } catch (error) {
-            console.error("Erro ao extrair metadados:", error);
           } finally {
             setIsFetchingMetadata(false);
           }
@@ -151,39 +89,7 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockT
     }
   }, [type, link, currentThumbnail, form]);
   
-  // Função para validar o link atual
-  const handleValidateLink = async () => {
-    const currentLink = form.getValues().link;
-    if (!currentLink) {
-      toast.error("Insira um link para validar");
-      return;
-    }
-    
-    setIsValidating(true);
-    setLinkValidation(null);
-    
-    try {
-      const result = await validateLink(currentLink);
-      setLinkValidation(result);
-      
-      if (result.isValid) {
-        toast.success("Link validado com sucesso!");
-        
-        // Se for um vídeo e o resultado trouxer uma thumbnail, usamos ela
-        if (type === "video" && result.thumbnail && (!currentThumbnail || currentThumbnail === "")) {
-          form.setValue("thumbnail", result.thumbnail, { shouldValidate: true });
-        }
-      } else {
-        toast.error("Problema com o link: " + result.message);
-      }
-    } catch (error) {
-      toast.error("Erro ao validar link: " + (error instanceof Error ? error.message : String(error)));
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  // Função para buscar metadados do vídeo manualmente
+  // Manual metadata fetching function
   const handleFetchMetadata = async () => {
     const currentLink = form.getValues().link;
     if (!currentLink) {
@@ -200,64 +106,40 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockT
     
     try {
       toast.info("Buscando metadados do vídeo...");
-      const metadata = await fetchVideoMetadata(currentLink);
-      
-      let fieldsUpdated = 0;
-      
-      if (metadata.thumbnail && (!currentThumbnail || currentThumbnail === "")) {
-        form.setValue("thumbnail", metadata.thumbnail, { shouldValidate: true });
-        fieldsUpdated++;
-      }
-      
-      if (metadata.title && form.getValues().title === "") {
-        form.setValue("title", metadata.title, { shouldValidate: true });
-        fieldsUpdated++;
-      }
-      
-      if (metadata.description && form.getValues().excerpt === "") {
-        // Truncate if too long
-        const excerpt = metadata.description.length > 500 
-          ? metadata.description.substring(0, 497) + "..." 
-          : metadata.description;
-        
-        form.setValue("excerpt", excerpt, { shouldValidate: true });
-        fieldsUpdated++;
-      }
+      const fieldsUpdated = await extractVideoMetadata(currentLink, form);
       
       if (fieldsUpdated > 0) {
         toast.success(`Metadados extraídos com sucesso! ${fieldsUpdated} campos atualizados.`);
       } else {
         toast.warning("Não foi possível extrair metadados deste vídeo.");
       }
-    } catch (error) {
-      toast.error("Erro ao extrair metadados: " + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsFetchingMetadata(false);
     }
   };
   
-  // Função personalizada para submit
+  // Custom submit function with validation
   const handleFormSubmit = async (values: AcervoFormValues) => {
-    // Para vídeos sem descrição, adicionar uma descrição padrão
+    // For videos without description, add a default description
     if (values.type === "video" && (!values.excerpt || values.excerpt.trim() === "")) {
       values.excerpt = "Assista a este vídeo para mais informações.";
     }
     
-    // Validar o link antes de enviar
+    // Validate the link before submitting
     setIsValidating(true);
     
     try {
       const result = await validateLink(values.link);
       
       if (!result.isValid) {
-        // Mostrar confirmação antes de prosseguir com um link inválido
+        // Show confirmation before proceeding with an invalid link
         if (!window.confirm(`O link parece estar inacessível: ${result.message}. Deseja continuar mesmo assim?`)) {
           setIsValidating(false);
           return;
         }
       }
       
-      // Se chegou aqui, o usuário confirmou ou o link está válido
+      // If we got here, the user confirmed or the link is valid
       onSubmit(values);
     } catch (error) {
       toast.error("Erro ao validar link: " + (error instanceof Error ? error.message : String(error)));
@@ -267,177 +149,34 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockT
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Título</FormLabel>
-              <FormControl>
-                <Input placeholder="Título do conteúdo" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tipo de Conteúdo</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value}
-                disabled={lockType}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um tipo" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="article">Artigo</SelectItem>
-                  <SelectItem value="video">Vídeo</SelectItem>
-                  <SelectItem value="document">Documento</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="link"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Link do Conteúdo</FormLabel>
-              <div className="flex gap-2">
-                <FormControl className="flex-1">
-                  <Input placeholder="https://example.com/content" {...field} />
-                </FormControl>
-                {type === "video" && (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={handleFetchMetadata}
-                    disabled={isFetchingMetadata || !field.value}
-                    className="shrink-0"
-                  >
-                    {isFetchingMetadata ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                    )}
-                    Extrair Metadados
-                  </Button>
-                )}
-                <Button 
-                  type="button" 
-                  variant="secondary" 
-                  onClick={handleValidateLink}
-                  disabled={isValidating || !field.value}
-                  className="shrink-0"
-                >
-                  {isValidating ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    "Validar Link"
-                  )}
-                </Button>
-              </div>
-              <FormDescription>
-                {type === "video" ? 
-                  "URL do vídeo (YouTube, Vimeo, etc.). A miniatura, título e descrição serão detectados automaticamente." : 
-                  "URL para o artigo ou documento completo"}
-              </FormDescription>
-              
-              {linkValidation && (
-                <Alert variant={linkValidation.isValid ? "default" : "destructive"} className="mt-2">
-                  {linkValidation.isValid ? (
-                    <CheckCircle2 className="h-4 w-4" />
-                  ) : (
-                    <AlertTriangle className="h-4 w-4" />
-                  )}
-                  <AlertTitle>{linkValidation.isValid ? "Link válido" : "Problema detectado"}</AlertTitle>
-                  <AlertDescription>{linkValidation.message}</AlertDescription>
-                </Alert>
-              )}
-              
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="thumbnail"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL da Miniatura</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/image.jpg" {...field} />
-              </FormControl>
-              <FormDescription>
-                {type === "video" ? 
-                  "Miniatura detectada automaticamente. Você pode modificá-la se desejar." : 
-                  "URL de uma imagem para representar o conteúdo"}
-              </FormDescription>
-              {field.value && (
-                <div className="mt-2">
-                  <p className="text-sm mb-1">Prévia:</p>
-                  <img 
-                    src={field.value} 
-                    alt="Thumbnail preview" 
-                    className="w-full h-32 object-cover rounded-md" 
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Imagem+Inválida';
-                    }}
-                  />
-                </div>
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="excerpt"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{type === "video" ? "Resumo (opcional para vídeos)" : "Resumo"}</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder={type === "video" ? "Opcional - será preenchido automaticamente se disponível" : "Breve descrição do conteúdo"} 
-                  className="resize-none"
-                  rows={3}
-                  {...field} 
-                />
-              </FormControl>
-              <FormDescription>
-                {type === "video" ? 
-                  "Para vídeos, o resumo é opcional e será extraído automaticamente quando possível." : 
-                  "Uma breve descrição do conteúdo para exibição na listagem."}
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isValidating || isFetchingMetadata}>
-            {isEditing ? "Atualizar" : "Adicionar"}
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
+    <FormProvider {...form}>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+          <TitleField />
+          <ContentTypeSelector lockType={lockType} />
+          <LinkValidationSection 
+            isEditing={isEditing}
+            isValidating={isValidating}
+            setIsValidating={setIsValidating}
+            onFetchMetadata={handleFetchMetadata}
+            isFetchingMetadata={isFetchingMetadata}
+            type={type}
+            linkValidation={linkValidation}
+            setLinkValidation={setLinkValidation}
+          />
+          <ThumbnailPreview type={type} />
+          <ExcerptField type={type} />
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isValidating || isFetchingMetadata}>
+              {isEditing ? "Atualizar" : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </Form>
+    </FormProvider>
   );
 }
