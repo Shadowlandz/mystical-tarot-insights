@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch, FormProvider } from "react-hook-form";
 import { useEffect, useState } from "react";
@@ -42,17 +41,14 @@ export function AcervoForm({
     },
   });
 
-  // Observe form fields for metadata extraction
   const type = useWatch({ control: form.control, name: "type" });
   const link = useWatch({ control: form.control, name: "link" });
   const currentThumbnail = useWatch({ control: form.control, name: "thumbnail" });
   
-  // State for link validation
   const [linkValidation, setLinkValidation] = useState<LinkValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
 
-  // Automatically fetch metadata when a video link is entered
   useEffect(() => {
     const fetchMetadataAutomatically = async () => {
       if (type === "video" && link && isVideoUrl(link)) {
@@ -71,7 +67,6 @@ export function AcervoForm({
       }
     };
     
-    // Debounce the metadata fetch to avoid too many requests
     const timer = setTimeout(() => {
       fetchMetadataAutomatically();
     }, 800);
@@ -79,7 +74,6 @@ export function AcervoForm({
     return () => clearTimeout(timer);
   }, [type, link, currentThumbnail, form]);
 
-  // Manual metadata fetching function
   const handleFetchMetadata = async () => {
     const currentLink = form.getValues().link;
     if (!currentLink) {
@@ -107,29 +101,20 @@ export function AcervoForm({
       setIsFetchingMetadata(false);
     }
   };
-  
-  // Custom submit function with validation
+
   const handleFormSubmit = async (values: AcervoFormValues) => {
-    // For videos without description, add a default description
-    if (values.type === "video" && (!values.excerpt || values.excerpt.trim() === "")) {
-      values.excerpt = "Assista a este vídeo para mais informações.";
-    }
-    
-    // Validate the link before submitting
     setIsValidating(true);
     
     try {
       const result = await validateLink(values.link);
       
       if (!result.isValid) {
-        // Show confirmation before proceeding with an invalid link
         if (!window.confirm(`O link parece estar inacessível: ${result.message}. Deseja continuar mesmo assim?`)) {
           setIsValidating(false);
           return;
         }
       }
       
-      // If we got here, the user confirmed or the link is valid
       onSubmit(values);
     } catch (error) {
       toast.error("Erro ao validar link: " + (error instanceof Error ? error.message : String(error)));
