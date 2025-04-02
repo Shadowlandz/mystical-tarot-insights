@@ -14,15 +14,21 @@ export const acervoFormSchema = z.object({
   }),
   excerpt: z.string().min(10, {
     message: "O resumo deve ter pelo menos 10 caracteres",
-  }).optional().refine((val, ctx) => {
-    // Make excerpt optional only for videos
-    if (ctx.data.type !== 'video' && (!val || val.length < 10)) {
-      return false;
-    }
-    return true;
-  }, {
-    message: "O resumo é obrigatório e deve ter pelo menos 10 caracteres",
-  }),
+  }).optional()
+    .superRefine((val, ctx) => {
+      // Make excerpt optional only for videos
+      if (ctx.path[0] === 'excerpt' && ctx.data.type !== 'video' && (!val || val.length < 10)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.too_small,
+          minimum: 10,
+          type: "string",
+          inclusive: true,
+          message: "O resumo é obrigatório e deve ter pelo menos 10 caracteres para artigos e documentos",
+        });
+        return false;
+      }
+      return true;
+    }),
   link: z.string().url({
     message: "Por favor, insira uma URL válida para o conteúdo",
   }),

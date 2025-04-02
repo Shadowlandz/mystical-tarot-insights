@@ -10,8 +10,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AcervoForm, AcervoFormValues } from "./AcervoForm";
-import { ContentType } from "../acervo/AcervoTypeUtils";
+import { AcervoForm } from "./AcervoForm";
+import { AcervoFormValues } from "./form-schema";
+import { ContentType } from "./form-schema";
 
 interface AcervoDialogProps {
   open: boolean;

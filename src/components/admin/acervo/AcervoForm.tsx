@@ -1,13 +1,13 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useWatch, Form, FormProvider } from "react-hook-form";
+import { useForm, useWatch, FormProvider } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { validateLink, LinkValidationResult } from "@/utils/linkValidator";
-import { isVideoUrl, getVideoThumbnail } from "@/utils/videoUtils";
+import { isVideoUrl } from "@/utils/videoUtils";
 import { acervoFormSchema, AcervoFormValues } from "./form-schema";
 import { TitleField } from "./form/TitleField";
 import { ContentTypeSelector } from "./form/ContentTypeSelector";
@@ -15,6 +15,9 @@ import { LinkValidationSection } from "./form/LinkValidationSection";
 import { ThumbnailPreview } from "./form/ThumbnailPreview";
 import { ExcerptField } from "./form/ExcerptField";
 import { extractVideoMetadata } from "./form/MetadataExtractor";
+import { FormFooterActions } from "./form/FormFooterActions";
+
+export { type AcervoFormValues } from "./form-schema";
 
 interface AcervoFormProps {
   defaultValues?: AcervoFormValues;
@@ -47,7 +50,7 @@ export function AcervoForm({
   const link = useWatch({ control: form.control, name: "link" });
   const currentThumbnail = useWatch({ control: form.control, name: "thumbnail" });
   
-  // Estado para controlar a validação do link
+  // State for link validation
   const [linkValidation, setLinkValidation] = useState<LinkValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
@@ -79,16 +82,6 @@ export function AcervoForm({
     return () => clearTimeout(timer);
   }, [type, link, currentThumbnail, form]);
 
-  // Detectar thumbnail automaticamente quando for um vídeo
-  useEffect(() => {
-    if (type === "video" && link && isVideoUrl(link) && (!currentThumbnail || currentThumbnail === "")) {
-      const thumbnail = getVideoThumbnail(link);
-      if (thumbnail) {
-        form.setValue("thumbnail", thumbnail, { shouldValidate: true });
-      }
-    }
-  }, [type, link, currentThumbnail, form]);
-  
   // Manual metadata fetching function
   const handleFetchMetadata = async () => {
     const currentLink = form.getValues().link;
@@ -150,33 +143,29 @@ export function AcervoForm({
 
   return (
     <FormProvider {...form}>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-          <TitleField />
-          <ContentTypeSelector lockType={lockType} />
-          <LinkValidationSection 
-            isEditing={isEditing}
-            isValidating={isValidating}
-            setIsValidating={setIsValidating}
-            onFetchMetadata={handleFetchMetadata}
-            isFetchingMetadata={isFetchingMetadata}
-            type={type}
-            linkValidation={linkValidation}
-            setLinkValidation={setLinkValidation}
-          />
-          <ThumbnailPreview type={type} />
-          <ExcerptField type={type} />
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isValidating || isFetchingMetadata}>
-              {isEditing ? "Atualizar" : "Adicionar"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </Form>
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        <TitleField />
+        <ContentTypeSelector lockType={lockType} />
+        <LinkValidationSection 
+          isEditing={isEditing}
+          isValidating={isValidating}
+          setIsValidating={setIsValidating}
+          onFetchMetadata={handleFetchMetadata}
+          isFetchingMetadata={isFetchingMetadata}
+          type={type}
+          linkValidation={linkValidation}
+          setLinkValidation={setLinkValidation}
+        />
+        <ThumbnailPreview type={type} />
+        <ExcerptField type={type} />
+        
+        <FormFooterActions 
+          onCancel={onCancel} 
+          isEditing={isEditing} 
+          isValidating={isValidating}
+          isFetchingMetadata={isFetchingMetadata}
+        />
+      </form>
     </FormProvider>
   );
 }
