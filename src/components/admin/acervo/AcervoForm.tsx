@@ -31,7 +31,7 @@ import { getVideoThumbnail, isVideoUrl } from "@/utils/videoUtils";
 import { validateLink, LinkValidationResult } from "@/utils/linkValidator";
 import { fetchVideoMetadata } from "@/utils/videoMetadataFetcher";
 
-// Form validation schema
+// Form validation schema with conditional validation for excerpt
 export const acervoFormSchema = z.object({
   title: z.string().min(3, {
     message: "O título deve ter pelo menos 3 caracteres",
@@ -44,6 +44,14 @@ export const acervoFormSchema = z.object({
   }),
   excerpt: z.string().min(10, {
     message: "O resumo deve ter pelo menos 10 caracteres",
+  }).optional().refine((val, ctx) => {
+    // Make excerpt optional only for videos
+    if (ctx.parent.type !== 'video' && (!val || val.length < 10)) {
+      return false;
+    }
+    return true;
+  }, {
+    message: "O resumo é obrigatório e deve ter pelo menos 10 caracteres",
   }),
   link: z.string().url({
     message: "Por favor, insira uma URL válida para o conteúdo",
@@ -81,6 +89,57 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockT
   const [linkValidation, setLinkValidation] = useState<LinkValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+
+  // Automatically fetch metadata when a video link is entered
+  useEffect(() => {
+    const fetchMetadataAutomatically = async () => {
+      if (type === "video" && link && isVideoUrl(link)) {
+        if (!currentThumbnail || form.getValues().title === "" || form.getValues().excerpt === "") {
+          setIsFetchingMetadata(true);
+          try {
+            const metadata = await fetchVideoMetadata(link);
+            
+            let fieldsUpdated = 0;
+            
+            if (metadata.thumbnail && (!currentThumbnail || currentThumbnail === "")) {
+              form.setValue("thumbnail", metadata.thumbnail, { shouldValidate: true });
+              fieldsUpdated++;
+            }
+            
+            if (metadata.title && form.getValues().title === "") {
+              form.setValue("title", metadata.title, { shouldValidate: true });
+              fieldsUpdated++;
+            }
+            
+            if (metadata.description && form.getValues().excerpt === "") {
+              // Truncate if too long
+              const excerpt = metadata.description.length > 500 
+                ? metadata.description.substring(0, 497) + "..." 
+                : metadata.description;
+              
+              form.setValue("excerpt", excerpt, { shouldValidate: true });
+              fieldsUpdated++;
+            }
+            
+            if (fieldsUpdated > 0) {
+              toast.success(`Metadados extraídos automaticamente (${fieldsUpdated} campos)`);
+            }
+          } catch (error) {
+            console.error("Erro ao extrair metadados:", error);
+          } finally {
+            setIsFetchingMetadata(false);
+          }
+        }
+      }
+    };
+    
+    // Debounce the metadata fetch to avoid too many requests
+    const timer = setTimeout(() => {
+      fetchMetadataAutomatically();
+    }, 800);
+    
+    return () => clearTimeout(timer);
+  }, [type, link, currentThumbnail, form]);
 
   // Detectar thumbnail automaticamente quando for um vídeo
   useEffect(() => {
@@ -124,7 +183,7 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockT
     }
   };
 
-  // Nova função para buscar metadados do vídeo
+  // Função para buscar metadados do vídeo manualmente
   const handleFetchMetadata = async () => {
     const currentLink = form.getValues().link;
     if (!currentLink) {
@@ -179,6 +238,11 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockT
   
   // Função personalizada para submit
   const handleFormSubmit = async (values: AcervoFormValues) => {
+    // Para vídeos sem descrição, adicionar uma descrição padrão
+    if (values.type === "video" && (!values.excerpt || values.excerpt.trim() === "")) {
+      values.excerpt = "Assista a este vídeo para mais informações.";
+    }
+    
     // Validar o link antes de enviar
     setIsValidating(true);
     
@@ -288,7 +352,7 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockT
               </div>
               <FormDescription>
                 {type === "video" ? 
-                  "URL do vídeo (YouTube, Vimeo, etc.). A miniatura será detectada automaticamente." : 
+                  "URL do vídeo (YouTube, Vimeo, etc.). A miniatura, título e descrição serão detectados automaticamente." : 
                   "URL para o artigo ou documento completo"}
               </FormDescription>
               
@@ -346,15 +410,20 @@ export function AcervoForm({ defaultValues, onSubmit, onCancel, isEditing, lockT
           name="excerpt"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Resumo</FormLabel>
+              <FormLabel>{type === "video" ? "Resumo (opcional para vídeos)" : "Resumo"}</FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="Breve descrição do conteúdo" 
+                  placeholder={type === "video" ? "Opcional - será preenchido automaticamente se disponível" : "Breve descrição do conteúdo"} 
                   className="resize-none"
                   rows={3}
                   {...field} 
                 />
               </FormControl>
+              <FormDescription>
+                {type === "video" ? 
+                  "Para vídeos, o resumo é opcional e será extraído automaticamente quando possível." : 
+                  "Uma breve descrição do conteúdo para exibição na listagem."}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

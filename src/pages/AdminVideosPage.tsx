@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, RefreshCw } from "lucide-react";
@@ -91,6 +92,11 @@ const AdminVideosPage = () => {
 
   const handleAddItem = async (formValues) => {
     try {
+      // Ensure excerpt has a default value if not provided
+      if (!formValues.excerpt || formValues.excerpt.trim() === "") {
+        formValues.excerpt = "Assista a este vídeo para mais informações.";
+      }
+      
       const newItem = {
         title: formValues.title,
         type: "video" as ContentType,
@@ -104,7 +110,10 @@ const AdminVideosPage = () => {
         .insert(newItem)
         .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Database error:", error);
+        throw new Error(`Erro ao adicionar vídeo: ${error.message || error.details || "Erro de banco de dados"}`);
+      }
       
       const insertedItem = data && data.length > 0 ? data[0] : null;
       
