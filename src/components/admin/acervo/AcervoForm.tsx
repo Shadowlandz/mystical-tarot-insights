@@ -2,9 +2,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch, FormProvider } from "react-hook-form";
 import { useEffect, useState } from "react";
-import { DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { validateLink, LinkValidationResult } from "@/utils/linkValidator";
 import { isVideoUrl } from "@/utils/videoUtils";

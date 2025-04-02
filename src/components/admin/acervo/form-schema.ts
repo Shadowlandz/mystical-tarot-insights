@@ -15,6 +15,9 @@ export const acervoFormSchema = z.object({
   excerpt: z.string().min(10, {
     message: "O resumo deve ter pelo menos 10 caracteres",
   }).optional(),
+  link: z.string().url({
+    message: "Por favor, insira uma URL válida para o conteúdo",
+  }),
 }).superRefine((values, ctx) => {
   // Make excerpt required only for articles and documents (not videos)
   if (values.type !== 'video' && (!values.excerpt || values.excerpt.length < 10)) {
