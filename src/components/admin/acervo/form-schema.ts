@@ -12,9 +12,7 @@ export const acervoFormSchema = z.object({
   thumbnail: z.string().url({
     message: "Por favor, insira uma URL válida para a miniatura",
   }),
-  excerpt: z.string().min(10, {
-    message: "O resumo deve ter pelo menos 10 caracteres",
-  }).optional(),
+  excerpt: z.string().optional(),
   link: z.string().url({
     message: "Por favor, insira uma URL válida para o conteúdo",
   }),
