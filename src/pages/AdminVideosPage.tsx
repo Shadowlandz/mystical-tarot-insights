@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, RefreshCw } from "lucide-react";
+import { Plus, Search, RefreshCw, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { convertArrayToStudyCardProps, convertToStudyCardProps } from "@/types/acervo";
 import { ContentType } from "@/components/admin/acervo/AcervoTypeUtils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const AdminVideosPage = () => {
   const { toast } = useToast();
@@ -37,6 +38,8 @@ const AdminVideosPage = () => {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("recent");
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     fetchItems();
@@ -44,6 +47,7 @@ const AdminVideosPage = () => {
 
   const fetchItems = async () => {
     setIsLoading(true);
+    setHasError(false);
     try {
       const { data, error } = await supabase
         .from('acervo_items')
@@ -58,9 +62,11 @@ const AdminVideosPage = () => {
       setFilteredItems(convertedData);
     } catch (error) {
       console.error("Error fetching videos:", error);
+      setHasError(true);
+      setErrorMessage("Não foi possível carregar os vídeos. Verifique se você tem permissões de administrador.");
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os vídeos.",
+        description: "Não foi possível carregar os vídeos. Verifique suas permissões.",
         variant: "destructive",
       });
     } finally {
@@ -75,7 +81,7 @@ const AdminVideosPage = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(item => 
         item.title.toLowerCase().includes(query) || 
-        item.excerpt.toLowerCase().includes(query)
+        (item.excerpt && item.excerpt.toLowerCase().includes(query))
       );
     }
     
@@ -110,7 +116,11 @@ const AdminVideosPage = () => {
       
       if (error) {
         console.error("Database error:", error);
-        throw new Error(`Erro ao adicionar vídeo: ${error.message || error.details || "Erro de banco de dados"}`);
+        if (error.code === '42501') {
+          throw new Error("Você não tem permissão para adicionar vídeos. Verifique se você tem perfil de administrador.");
+        } else {
+          throw new Error(`Erro ao adicionar vídeo: ${error.message || error.details || "Erro de banco de dados"}`);
+        }
       }
       
       const insertedItem = data && data.length > 0 ? data[0] : null;
@@ -130,7 +140,7 @@ const AdminVideosPage = () => {
       console.error("Error adding video:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível adicionar o vídeo: " + (error.message || "Erro desconhecido"),
+        description: error.message || "Não foi possível adicionar o vídeo. Verifique suas permissões.",
         variant: "destructive",
       });
     }
@@ -144,7 +154,13 @@ const AdminVideosPage = () => {
         .eq('type', 'video')
         .limit(100);
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === '42501') {
+          throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador.");
+        } else {
+          throw error;
+        }
+      }
       
       const dbItem = data.find(item => {
         const convertedId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || 0;
@@ -166,7 +182,13 @@ const AdminVideosPage = () => {
         })
         .eq('id', dbItem.id);
       
-      if (updateError) throw updateError;
+      if (updateError) {
+        if (updateError.code === '42501') {
+          throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador.");
+        } else {
+          throw updateError;
+        }
+      }
       
       setItems(prevItems => 
         prevItems.map(item => 
@@ -184,7 +206,7 @@ const AdminVideosPage = () => {
       console.error("Error updating video:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o vídeo: " + (error.message || "Erro desconhecido"),
+        description: error.message || "Não foi possível atualizar o vídeo. Verifique suas permissões.",
         variant: "destructive",
       });
     }
@@ -200,7 +222,13 @@ const AdminVideosPage = () => {
         .eq('type', 'video')
         .limit(100);
       
-      if (error) throw error;
+      if (error) {
+        if (error.code === '42501') {
+          throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador.");
+        } else {
+          throw error;
+        }
+      }
       
       const dbItem = data.find(item => {
         const convertedId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || 0;
@@ -216,7 +244,13 @@ const AdminVideosPage = () => {
         .delete()
         .eq('id', dbItem.id);
       
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        if (deleteError.code === '42501') {
+          throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador.");
+        } else {
+          throw deleteError;
+        }
+      }
       
       setItems(prevItems => prevItems.filter(item => item.id !== deletingId));
       setIsDeleteDialogOpen(false);
@@ -230,7 +264,7 @@ const AdminVideosPage = () => {
       console.error("Error deleting video:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível excluir o vídeo: " + (error.message || "Erro desconhecido"),
+        description: error.message || "Não foi possível excluir o vídeo. Verifique suas permissões.",
         variant: "destructive",
       });
     }
@@ -255,6 +289,16 @@ const AdminVideosPage = () => {
           </Button>
         </div>
       </div>
+
+      {hasError && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro no carregamento</AlertTitle>
+          <AlertDescription>
+            {errorMessage}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Input
