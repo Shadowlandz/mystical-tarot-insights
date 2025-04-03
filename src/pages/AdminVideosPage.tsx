@@ -93,15 +93,13 @@ const AdminVideosPage = () => {
   const handleAddItem = async (formValues) => {
     try {
       // Ensure excerpt has a default value if not provided
-      if (!formValues.excerpt || formValues.excerpt.trim() === "") {
-        formValues.excerpt = "Assista a este vídeo para mais informações.";
-      }
+      const excerpt = formValues.excerpt || "";
       
       const newItem = {
         title: formValues.title,
         type: "video" as ContentType,
         thumbnail: formValues.thumbnail,
-        excerpt: formValues.excerpt,
+        excerpt: excerpt,
         link: formValues.link,
       };
       
@@ -163,7 +161,7 @@ const AdminVideosPage = () => {
           title: updatedItem.title,
           type: "video",
           thumbnail: updatedItem.thumbnail,
-          excerpt: updatedItem.excerpt,
+          excerpt: updatedItem.excerpt || "",
           link: updatedItem.link,
         })
         .eq('id', dbItem.id);
