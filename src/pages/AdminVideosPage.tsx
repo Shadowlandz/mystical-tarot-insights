@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, RefreshCw, AlertCircle } from "lucide-react";
+import { Plus, Search, RefreshCw, AlertCircle, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AcervoItemCard } from "@/components/admin/acervo/AcervoItemCard";
 import { AcervoDialog } from "@/components/admin/acervo/AcervoDialog";
 import { StudyCardProps } from "@/components/StudyCard";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isUserAdmin } from "@/integrations/supabase/client";
 import { 
   Dialog, 
   DialogContent, 
@@ -40,10 +40,42 @@ const AdminVideosPage = () => {
   const [sortBy, setSortBy] = useState("recent");
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
 
   useEffect(() => {
-    fetchItems();
+    checkAdminStatus();
   }, []);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchItems();
+    }
+  }, [isAdmin]);
+
+  const checkAdminStatus = async () => {
+    setIsCheckingAdmin(true);
+    try {
+      const adminStatus = await isUserAdmin();
+      setIsAdmin(adminStatus);
+      
+      if (!adminStatus) {
+        setHasError(true);
+        setErrorMessage("Você não tem permissões de administrador para gerenciar vídeos. Entre em contato com o administrador do sistema.");
+        toast({
+          title: "Acesso restrito",
+          description: "Você não tem permissões para gerenciar vídeos.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      setHasError(true);
+      setErrorMessage("Não foi possível verificar suas permissões. Tente novamente mais tarde.");
+    } finally {
+      setIsCheckingAdmin(false);
+    }
+  };
 
   const fetchItems = async () => {
     setIsLoading(true);
@@ -117,6 +149,7 @@ const AdminVideosPage = () => {
       if (error) {
         console.error("Database error:", error);
         if (error.code === '42501') {
+          await checkAdminStatus(); // Recheck admin status
           throw new Error("Você não tem permissão para adicionar vídeos. Verifique se você tem perfil de administrador.");
         } else {
           throw new Error(`Erro ao adicionar vídeo: ${error.message || error.details || "Erro de banco de dados"}`);
@@ -156,6 +189,7 @@ const AdminVideosPage = () => {
       
       if (error) {
         if (error.code === '42501') {
+          await checkAdminStatus(); // Recheck admin status
           throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador.");
         } else {
           throw error;
@@ -184,6 +218,7 @@ const AdminVideosPage = () => {
       
       if (updateError) {
         if (updateError.code === '42501') {
+          await checkAdminStatus(); // Recheck admin status
           throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador.");
         } else {
           throw updateError;
@@ -224,6 +259,7 @@ const AdminVideosPage = () => {
       
       if (error) {
         if (error.code === '42501') {
+          await checkAdminStatus(); // Recheck admin status
           throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador.");
         } else {
           throw error;
@@ -246,6 +282,7 @@ const AdminVideosPage = () => {
       
       if (deleteError) {
         if (deleteError.code === '42501') {
+          await checkAdminStatus(); // Recheck admin status
           throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador.");
         } else {
           throw deleteError;
@@ -274,20 +311,33 @@ const AdminVideosPage = () => {
     console.log("Visualizando vídeo:", item.title);
   };
 
+  if (isCheckingAdmin) {
+    return (
+      <div className="container mx-auto py-10">
+        <div className="flex flex-col items-center justify-center min-h-[50vh]">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mb-4"></div>
+          <p className="text-muted-foreground">Verificando permissões de administrador...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-semibold">Gerenciar Vídeos</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchItems}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Atualizar
-          </Button>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Adicionar Vídeo
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={fetchItems}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Atualizar
+            </Button>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Adicionar Vídeo
+            </Button>
+          </div>
+        )}
       </div>
 
       {hasError && (
@@ -300,102 +350,117 @@ const AdminVideosPage = () => {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <Input
-          placeholder="Buscar por título ou descrição..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="md:max-w-sm"
-        />
-        <Select onValueChange={setSortBy} defaultValue="recent">
-          <SelectTrigger className="md:max-w-xs">
-            <SelectValue placeholder="Ordenar por" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="recent">Mais Recentes</SelectItem>
-            <SelectItem value="views">Mais Visualizados</SelectItem>
-            <SelectItem value="title">Título (A-Z)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="animate-pulse rounded-md p-4 bg-muted">
-              <div className="h-40 bg-secondary rounded-md mb-2"></div>
-              <div className="h-6 bg-secondary rounded-md mb-2"></div>
-              <div className="h-4 bg-secondary rounded-md"></div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <>
-          {filteredItems.length === 0 ? (
-            <div className="text-center py-12 bg-muted/30 rounded-lg">
-              <div className="text-4xl mb-2">🎬</div>
-              <h3 className="text-xl font-semibold mb-2">Nenhum vídeo encontrado</h3>
-              <p className="text-muted-foreground mb-4">
-                Adicione novos vídeos ou altere os critérios de busca.
-              </p>
-              <Button onClick={() => setIsAddDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Vídeo
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {filteredItems.map((item) => (
-                <AcervoItemCard
-                  key={item.id}
-                  item={item}
-                  onEdit={(item) => setEditingItem(item)}
-                  onDelete={(id) => {
-                    setDeletingId(id);
-                    setIsDeleteDialogOpen(true);
-                  }}
-                  onPreview={handlePreviewVideo}
-                />
-              ))}
-            </div>
-          )}
-        </>
+      {!isAdmin && (
+        <Alert variant="destructive" className="mb-6">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Acesso restrito</AlertTitle>
+          <AlertDescription>
+            Você não tem permissões de administrador para gerenciar vídeos.
+            Entre em contato com o administrador do sistema para solicitar acesso.
+          </AlertDescription>
+        </Alert>
       )}
 
-      <AcervoDialog
-        open={isAddDialogOpen}
-        setOpen={setIsAddDialogOpen}
-        onSubmit={handleAddItem}
-        defaultType="video"
-      />
+      {isAdmin && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <Input
+              placeholder="Buscar por título ou descrição..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="md:max-w-sm"
+            />
+            <Select onValueChange={setSortBy} defaultValue="recent">
+              <SelectTrigger className="md:max-w-xs">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Mais Recentes</SelectItem>
+                <SelectItem value="views">Mais Visualizados</SelectItem>
+                <SelectItem value="title">Título (A-Z)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      <AcervoDialog
-        open={!!editingItem}
-        setOpen={() => setEditingItem(null)}
-        item={editingItem}
-        onSubmit={handleEditItem}
-        lockType={true}
-      />
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="animate-pulse rounded-md p-4 bg-muted">
+                  <div className="h-40 bg-secondary rounded-md mb-2"></div>
+                  <div className="h-6 bg-secondary rounded-md mb-2"></div>
+                  <div className="h-4 bg-secondary rounded-md"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              {filteredItems.length === 0 ? (
+                <div className="text-center py-12 bg-muted/30 rounded-lg">
+                  <div className="text-4xl mb-2">🎬</div>
+                  <h3 className="text-xl font-semibold mb-2">Nenhum vídeo encontrado</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Adicione novos vídeos ou altere os critérios de busca.
+                  </p>
+                  <Button onClick={() => setIsAddDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar Vídeo
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {filteredItems.map((item) => (
+                    <AcervoItemCard
+                      key={item.id}
+                      item={item}
+                      onEdit={(item) => setEditingItem(item)}
+                      onDelete={(id) => {
+                        setDeletingId(id);
+                        setIsDeleteDialogOpen(true);
+                      }}
+                      onPreview={handlePreviewVideo}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
 
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Confirmar Exclusão</DialogTitle>
-            <DialogDescription>
-              Tem certeza de que deseja excluir este vídeo do acervo? Esta ação
-              não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
-              Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <AcervoDialog
+            open={isAddDialogOpen}
+            setOpen={setIsAddDialogOpen}
+            onSubmit={handleAddItem}
+            defaultType="video"
+          />
+
+          <AcervoDialog
+            open={!!editingItem}
+            setOpen={() => setEditingItem(null)}
+            item={editingItem}
+            onSubmit={handleEditItem}
+            lockType={true}
+          />
+
+          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Confirmar Exclusão</DialogTitle>
+                <DialogDescription>
+                  Tem certeza de que deseja excluir este vídeo do acervo? Esta ação
+                  não pode ser desfeita.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button variant="destructive" onClick={handleDeleteConfirm}>
+                  Excluir
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   );
 };
