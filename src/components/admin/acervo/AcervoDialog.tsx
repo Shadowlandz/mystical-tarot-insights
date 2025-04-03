@@ -13,6 +13,10 @@ import {
 import { AcervoForm } from "./AcervoForm";
 import { AcervoFormValues } from "./form-schema";
 import { ContentType } from "./form-schema";
+import { useState, useEffect } from "react";
+import { isUserAdmin } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface AcervoDialogProps {
   open: boolean;
@@ -31,6 +35,29 @@ export function AcervoDialog({
   defaultType,
   lockType = false
 }: AcervoDialogProps) {
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
+  
+  // Check admin status when dialog opens
+  useEffect(() => {
+    if (open) {
+      const checkAdmin = async () => {
+        setIsCheckingAdmin(true);
+        try {
+          const adminStatus = await isUserAdmin();
+          setIsAdmin(adminStatus);
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+          setIsAdmin(false);
+        } finally {
+          setIsCheckingAdmin(false);
+        }
+      };
+      
+      checkAdmin();
+    }
+  }, [open]);
+
   // Convert StudyCardProps to AcervoFormValues if needed
   const defaultValues = item ? {
     title: item.title,
@@ -52,6 +79,13 @@ export function AcervoDialog({
     setOpen(false);
   };
 
+  const handleSubmit = (values: AcervoFormValues) => {
+    if (!isAdmin) {
+      return;
+    }
+    onSubmit(values);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-[600px]">
@@ -63,13 +97,28 @@ export function AcervoDialog({
             Preencha os detalhes do conteúdo que deseja {isEditing ? "atualizar" : "adicionar"} ao acervo.
           </DialogDescription>
         </DialogHeader>
-        <AcervoForm 
-          defaultValues={defaultValues}
-          onSubmit={onSubmit}
-          onCancel={handleCancel}
-          isEditing={isEditing}
-          lockType={lockType}
-        />
+        
+        {isCheckingAdmin ? (
+          <div className="flex justify-center py-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          </div>
+        ) : !isAdmin ? (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Você não tem permissão para {isEditing ? "editar" : "adicionar"} conteúdo.
+              Verifique se você tem perfil de administrador.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <AcervoForm 
+            defaultValues={defaultValues}
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+            isEditing={isEditing}
+            lockType={lockType}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

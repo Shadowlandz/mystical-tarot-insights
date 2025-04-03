@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isUserAdmin } from "@/integrations/supabase/client";
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
@@ -21,23 +21,10 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
         const { data } = await supabase.auth.getSession();
         
         if (data.session) {
-          // Verificar se o usuário tem role 'admin'
-          const { data: profileData, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', data.session.user.id)
-            .single();
+          // Verificar se o usuário tem role 'admin' usando nossa função auxiliar
+          const adminStatus = await isUserAdmin();
           
-          if (error) {
-            console.error("Erro ao verificar perfil:", error);
-            localStorage.removeItem("adminAuth");
-            localStorage.removeItem("adminLastActivity");
-            setIsAuthenticated(false);
-            setIsLoading(false);
-            return;
-          }
-          
-          if (profileData?.role === 'admin') {
+          if (adminStatus) {
             localStorage.setItem("adminAuth", "true");
             localStorage.setItem("adminLastActivity", Date.now().toString());
             setIsAuthenticated(true);

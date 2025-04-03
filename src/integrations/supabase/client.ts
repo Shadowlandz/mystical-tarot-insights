@@ -18,14 +18,35 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Helper function to check if current user is admin
+// Enhanced helper function to check if current user is admin
 export const isUserAdmin = async (): Promise<boolean> => {
   try {
+    // First, check if we have a session
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      console.log("No active session found");
+      return false;
+    }
+    
+    // Then check admin status with the RPC function
     const { data: isAdmin, error } = await supabase.rpc('is_admin');
     
     if (error) {
-      console.error('Error checking admin status:', error);
-      return false;
+      console.error('Error checking admin status via RPC:', error);
+      
+      // Fallback: try direct query to profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', sessionData.session.user.id)
+        .single();
+      
+      if (profileError) {
+        console.error('Error checking admin status via profiles:', profileError);
+        return false;
+      }
+      
+      return profileData?.role === 'admin';
     }
     
     return isAdmin || false;
@@ -34,4 +55,3 @@ export const isUserAdmin = async (): Promise<boolean> => {
     return false;
   }
 };
-
