@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -17,37 +16,56 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Verificar se o usuário está autenticado no Supabase
-      const { data } = await supabase.auth.getSession();
-      
-      if (data.session) {
-        // Verificar se o usuário tem role 'admin'
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.session.user.id)
-          .single();
+      try {
+        // Verificar se o usuário está autenticado no Supabase
+        const { data } = await supabase.auth.getSession();
         
-        if (profileData?.role === 'admin') {
-          localStorage.setItem("adminAuth", "true");
-          localStorage.setItem("adminLastActivity", Date.now().toString());
-          setIsAuthenticated(true);
+        if (data.session) {
+          // Verificar se o usuário tem role 'admin'
+          const { data: profileData, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.session.user.id)
+            .single();
+          
+          if (error) {
+            console.error("Erro ao verificar perfil:", error);
+            localStorage.removeItem("adminAuth");
+            localStorage.removeItem("adminLastActivity");
+            setIsAuthenticated(false);
+            setIsLoading(false);
+            return;
+          }
+          
+          if (profileData?.role === 'admin') {
+            localStorage.setItem("adminAuth", "true");
+            localStorage.setItem("adminLastActivity", Date.now().toString());
+            setIsAuthenticated(true);
+          } else {
+            localStorage.removeItem("adminAuth");
+            localStorage.removeItem("adminLastActivity");
+            setIsAuthenticated(false);
+            toast({
+              title: "Acesso negado",
+              description: "Você não tem permissões de administrador.",
+              variant: "destructive",
+            });
+          }
         } else {
-          localStorage.removeItem("adminAuth");
-          localStorage.removeItem("adminLastActivity");
-          setIsAuthenticated(false);
+          // Verificar autenticação baseada em localStorage (fallback)
+          const localAuth = localStorage.getItem("adminAuth") === "true";
+          setIsAuthenticated(localAuth);
         }
-      } else {
-        // Verificar autenticação baseada em localStorage (fallback)
-        const localAuth = localStorage.getItem("adminAuth") === "true";
-        setIsAuthenticated(localAuth);
+      } catch (error) {
+        console.error("Erro na verificação de autenticação:", error);
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
     
     checkAuth();
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     // Se estiver autenticado, atualize o timestamp de última atividade

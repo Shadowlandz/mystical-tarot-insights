@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -93,21 +92,33 @@ const AdminLoginPage = () => {
   // Verificar se o usuário já está autenticado
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        // Verificar se o usuário tem role 'admin'
-        const { data: profileData, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.session.user.id)
-          .single();
-        
-        if (profileData?.role === 'admin') {
-          localStorage.setItem("adminAuth", "true");
-          localStorage.setItem("adminLastActivity", Date.now().toString());
-          const returnUrl = new URLSearchParams(location.search).get("returnUrl");
-          navigate(returnUrl || "/admin/dashboard");
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          // Verificar se o usuário tem role 'admin'
+          const { data: profileData, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.session.user.id)
+            .single();
+          
+          if (error) {
+            console.error("Erro ao verificar perfil:", error);
+            if (error.code === 'PGRST301' || error.message.includes('permission denied')) {
+              setLoginError("Erro de permissão ao acessar o banco de dados. Contate o administrador do sistema.");
+            }
+            return;
+          }
+          
+          if (profileData?.role === 'admin') {
+            localStorage.setItem("adminAuth", "true");
+            localStorage.setItem("adminLastActivity", Date.now().toString());
+            const returnUrl = new URLSearchParams(location.search).get("returnUrl");
+            navigate(returnUrl || "/admin/dashboard");
+          }
         }
+      } catch (error) {
+        console.error("Erro ao verificar sessão:", error);
       }
     };
     
@@ -138,41 +149,52 @@ const AdminLoginPage = () => {
       if (error) throw error;
       
       if (data.user) {
-        // Verificar se o usuário tem role 'admin'
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single();
-        
-        if (profileError) throw profileError;
-        
-        if (profileData?.role === 'admin') {
-          // Login bem-sucedido como administrador
-          localStorage.setItem("adminAuth", "true");
-          localStorage.setItem("adminLastActivity", Date.now().toString());
-          localStorage.removeItem("adminLoginAttempts");
-          localStorage.removeItem("adminLockExpiry");
+        try {
+          // Verificar se o usuário tem role 'admin'
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
           
-          toast({
-            title: "Login bem-sucedido",
-            description: "Bem-vindo ao painel administrativo",
-          });
+          if (profileError) {
+            if (profileError.code === 'PGRST301' || profileError.message.includes('permission denied')) {
+              throw new Error("Erro de permissão ao acessar o banco de dados. Contate o administrador do sistema.");
+            }
+            throw profileError;
+          }
           
-          // Redirecionar para a página solicitada ou para o dashboard
-          const returnUrl = new URLSearchParams(location.search).get("returnUrl");
-          navigate(returnUrl || "/admin/dashboard");
-        } else {
-          // Usuário não é administrador
+          if (profileData?.role === 'admin') {
+            // Login bem-sucedido como administrador
+            localStorage.setItem("adminAuth", "true");
+            localStorage.setItem("adminLastActivity", Date.now().toString());
+            localStorage.removeItem("adminLoginAttempts");
+            localStorage.removeItem("adminLockExpiry");
+            
+            toast({
+              title: "Login bem-sucedido",
+              description: "Bem-vindo ao painel administrativo",
+            });
+            
+            // Redirecionar para a página solicitada ou para o dashboard
+            const returnUrl = new URLSearchParams(location.search).get("returnUrl");
+            navigate(returnUrl || "/admin/dashboard");
+          } else {
+            // Usuário não é administrador
+            await supabase.auth.signOut();
+            incrementAttempts();
+            setLoginError("Você não tem permissões de administrador.");
+            
+            toast({
+              title: "Acesso negado",
+              description: "Você não tem permissões de administrador.",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error("Erro ao verificar o perfil:", error);
           await supabase.auth.signOut();
-          incrementAttempts();
-          setLoginError("Você não tem permissões de administrador.");
-          
-          toast({
-            title: "Acesso negado",
-            description: "Você não tem permissões de administrador.",
-            variant: "destructive",
-          });
+          setLoginError(error instanceof Error ? error.message : "Erro ao verificar permissões de administrador");
         }
       }
     } catch (error) {
