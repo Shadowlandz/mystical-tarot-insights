@@ -40,23 +40,35 @@ export function AcervoDialog({
   
   // Check admin status when dialog opens
   useEffect(() => {
+    let isMounted = true;
+    
     if (open) {
       const checkAdmin = async () => {
         setIsCheckingAdmin(true);
         try {
           const adminStatus = await isUserAdmin();
           console.log("Admin status check result:", adminStatus);
-          setIsAdmin(adminStatus);
+          if (isMounted) {
+            setIsAdmin(adminStatus);
+          }
         } catch (error) {
           console.error("Error checking admin status:", error);
-          setIsAdmin(false);
+          if (isMounted) {
+            setIsAdmin(false);
+          }
         } finally {
-          setIsCheckingAdmin(false);
+          if (isMounted) {
+            setIsCheckingAdmin(false);
+          }
         }
       };
       
       checkAdmin();
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [open]);
 
   // Convert StudyCardProps to AcervoFormValues if needed
@@ -86,6 +98,7 @@ export function AcervoDialog({
       return;
     }
     onSubmit(values);
+    setOpen(false);
   };
 
   return (
@@ -101,15 +114,15 @@ export function AcervoDialog({
         </DialogHeader>
         
         {isCheckingAdmin ? (
-          <div className="flex justify-center py-4">
+          <div className="flex justify-center py-8">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
           </div>
         ) : !isAdmin ? (
-          <Alert variant="destructive" className="mb-4">
+          <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               Você não tem permissão para {isEditing ? "editar" : "adicionar"} conteúdo.
-              Verifique se você tem perfil de administrador.
+              Verifique se você está logado com uma conta de administrador.
             </AlertDescription>
           </Alert>
         ) : (

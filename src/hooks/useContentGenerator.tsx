@@ -2,35 +2,32 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { generateLocalSpiritualContent } from "@/utils/spiritualContentGenerator";
+import { generateLocalSpiritualContent, SpiritualContentItem } from "@/utils/spiritualContentGenerator";
 
-export const useContentGenerator = (onSuccessCallback: () => void) => {
+interface UseContentGeneratorOptions {
+  onSuccessCallback: () => void;
+  count?: number;
+}
+
+export const useContentGenerator = ({ 
+  onSuccessCallback, 
+  count = 3 
+}: UseContentGeneratorOptions) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
 
   const generateSpiritualContent = async () => {
+    if (isGenerating) return; // Prevent multiple simultaneous requests
+    
     setIsGenerating(true);
     try {
       // Generate content locally to avoid permission issues
-      const generatedContent = generateLocalSpiritualContent(3);
+      const generatedContent = generateLocalSpiritualContent(count);
       
-      // Prepare items for insertion into Supabase
-      const itemsToInsert = generatedContent.map(item => ({
-        title: item.title,
-        type: item.type,
-        thumbnail: item.thumbnail,
-        excerpt: item.excerpt,
-        link: item.link,
-        views: 0
-      }));
+      // Insert content into database
+      const { error } = await insertContentIntoDatabase(generatedContent);
       
-      // Insert directly into the acervo_items table
-      // This avoids the permission issue with the users table
-      const { error: insertError } = await supabase
-        .from('acervo_items')
-        .insert(itemsToInsert);
-      
-      if (insertError) throw insertError;
+      if (error) throw error;
       
       toast({
         title: "Conteúdo gerado com sucesso",
@@ -49,6 +46,22 @@ export const useContentGenerator = (onSuccessCallback: () => void) => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Separated DB insertion logic for better testability and separation of concerns
+  const insertContentIntoDatabase = async (content: SpiritualContentItem[]) => {
+    const itemsToInsert = content.map(item => ({
+      title: item.title,
+      type: item.type,
+      thumbnail: item.thumbnail,
+      excerpt: item.excerpt,
+      link: item.link,
+      views: 0
+    }));
+    
+    return await supabase
+      .from('acervo_items')
+      .insert(itemsToInsert);
   };
 
   return { isGenerating, generateSpiritualContent };

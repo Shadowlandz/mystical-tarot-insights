@@ -1,5 +1,5 @@
 
-// Tipos de conteúdo espiritual
+// Types for spiritual content
 export type SpiritualContentItem = {
   title: string;
   type: "article" | "video" | "document";
@@ -8,8 +8,8 @@ export type SpiritualContentItem = {
   link: string;
 };
 
-// Fontes verificadas para conteúdo espiritual
-const verifiedSources = [
+// Verified sources for spiritual content
+const VERIFIED_SOURCES = [
   { name: "Mind Body Green", url: "https://www.mindbodygreen.com" },
   { name: "Spirituality Health", url: "https://spiritualityhealth.com" },
   { name: "Chopra", url: "https://chopra.com" },
@@ -19,8 +19,8 @@ const verifiedSources = [
   { name: "Personare", url: "https://www.personare.com.br" },
 ];
 
-// Tópicos espirituais expandidos com misticismo brasileiro e práticas esotéricas
-const topics = [
+// Spiritual topics expanded with Brazilian mysticism and esoteric practices
+const SPIRITUAL_TOPICS = [
   "meditação", "yoga", "mindfulness", "tarô", "astrologia", 
   "cristais", "chakras", "energia universal", "intuição", 
   "espiritualidade", "autoconhecimento", "equilíbrio energético",
@@ -28,8 +28,8 @@ const topics = [
   "reiki", "oráculos", "runas", "numerologia"
 ];
 
-// Imagens verificadas para conteúdo espiritual
-const verifiedImages = [
+// Verified images for spiritual content
+const VERIFIED_IMAGES = [
   "https://images.unsplash.com/photo-1531171074114-ce2fb0d97711?w=800&h=600&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&h=600&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1604881991720-f91add269bed?w=800&h=600&auto=format&fit=crop",
@@ -39,11 +39,11 @@ const verifiedImages = [
   "https://images.unsplash.com/photo-1574722772633-e4abe41ced20?w=800&h=600&auto=format&fit=crop"
 ];
 
-// IDs de vídeos verificados do YouTube sobre espiritualidade
-const verifiedYoutubeIds = [
-  "yKLGTrM1fZw", // Meditação guiada
-  "TQ6JBEK8BaA", // Música de meditação
-  "s-oir8gRSK0", // Espiritualidade e ciência
+// Verified YouTube video IDs about spirituality
+const VERIFIED_YOUTUBE_IDS = [
+  "yKLGTrM1fZw", // Guided meditation
+  "TQ6JBEK8BaA", // Meditation music
+  "s-oir8gRSK0", // Spirituality and science
   "FQYaRseg9MU", // Yoga
   "NG5jqkpYOUo", // Mindfulness
   "YUxTbLcJJWY", // Reiki
@@ -51,7 +51,9 @@ const verifiedYoutubeIds = [
   "lWkD0FK1xwE"  // Candomblé
 ];
 
-// Gerar títulos espirituais
+/**
+ * Generate spiritual titles
+ */
 function generateTitle(topic: string): string {
   const templates = [
     `O Poder de ${topic} para Transformar sua Vida`,
@@ -69,7 +71,9 @@ function generateTitle(topic: string): string {
   return templates[Math.floor(Math.random() * templates.length)];
 }
 
-// Gerar resumos de artigos espirituais
+/**
+ * Generate spiritual article excerpts
+ */
 function generateExcerpt(topic: string, sourceName: string): string {
   const templates = [
     `Descubra como ${topic} pode transformar sua percepção do mundo e conectá-lo com sua essência divina. Este estudo profundo revela práticas milenares que foram preservadas por antigas tradições. Fonte: ${sourceName}`,
@@ -86,38 +90,43 @@ function generateExcerpt(topic: string, sourceName: string): string {
   return templates[Math.floor(Math.random() * templates.length)];
 }
 
-// Gerar tipo de conteúdo com distribuição controlada
+/**
+ * Generate content type with controlled distribution
+ */
 function generateContentType(): "article" | "video" | "document" {
   const random = Math.random();
   
   if (random < 0.6) {
-    return "article"; // 60% de chance
+    return "article"; // 60% chance
   } else if (random < 0.9) {
-    return "video";   // 30% de chance
+    return "video";   // 30% chance
   } else {
-    return "document"; // 10% de chance
+    return "document"; // 10% chance
   }
 }
 
-// Gerar um item de conteúdo espiritual confiável
+/**
+ * Generate a reliable spiritual content item
+ */
 function generateSpiritualContentItem(): SpiritualContentItem {
-  const topic = topics[Math.floor(Math.random() * topics.length)];
+  // Pick random elements
+  const topic = SPIRITUAL_TOPICS[Math.floor(Math.random() * SPIRITUAL_TOPICS.length)];
   const type = generateContentType();
-  const source = verifiedSources[Math.floor(Math.random() * verifiedSources.length)];
+  const source = VERIFIED_SOURCES[Math.floor(Math.random() * VERIFIED_SOURCES.length)];
   
-  // Gerar título e resumo
+  // Generate title and excerpt
   const title = generateTitle(topic);
   const excerpt = generateExcerpt(topic, source.name);
   
-  // Gerar link apropriado com base no tipo de conteúdo
+  // Generate appropriate link based on content type
   let link = "";
   
   if (type === "video") {
-    // Usar links verificados do YouTube para vídeos
-    const videoId = verifiedYoutubeIds[Math.floor(Math.random() * verifiedYoutubeIds.length)];
+    // Use verified YouTube links for videos
+    const videoId = VERIFIED_YOUTUBE_IDS[Math.floor(Math.random() * VERIFIED_YOUTUBE_IDS.length)];
     link = `https://www.youtube.com/watch?v=${videoId}`;
   } else {
-    // Para artigos e documentos - usar caminhos verificados
+    // For articles and documents - use verified paths
     const formattedTopic = topic.toLowerCase().replace(/\s+/g, '-');
     
     if (source.url.includes('mindbodygreen.com')) {
@@ -137,8 +146,8 @@ function generateSpiritualContentItem(): SpiritualContentItem {
     }
   }
   
-  // Definir miniatura da lista verificada
-  const thumbnail = verifiedImages[Math.floor(Math.random() * verifiedImages.length)];
+  // Set thumbnail from verified list
+  const thumbnail = VERIFIED_IMAGES[Math.floor(Math.random() * VERIFIED_IMAGES.length)];
   
   return {
     title,
@@ -149,12 +158,27 @@ function generateSpiritualContentItem(): SpiritualContentItem {
   };
 }
 
-// Função exportada para gerar múltiplos itens de conteúdo espiritual
+/**
+ * Generate multiple spiritual content items
+ * @param count Number of items to generate (default: 3)
+ * @returns Array of spiritual content items
+ */
 export function generateLocalSpiritualContent(count: number = 3): SpiritualContentItem[] {
+  // Validate count
+  const validatedCount = Math.min(Math.max(1, count), 10); // Between 1 and 10
   const items: SpiritualContentItem[] = [];
   
-  for (let i = 0; i < count; i++) {
-    items.push(generateSpiritualContentItem());
+  // Generate unique items
+  const usedTitles = new Set<string>();
+  
+  while (items.length < validatedCount) {
+    const item = generateSpiritualContentItem();
+    
+    // Ensure uniqueness
+    if (!usedTitles.has(item.title)) {
+      usedTitles.add(item.title);
+      items.push(item);
+    }
   }
   
   return items;

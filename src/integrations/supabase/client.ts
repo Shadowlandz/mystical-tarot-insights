@@ -6,6 +6,10 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://wpgmtartrnabekgqdire.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwZ210YXJ0cm5hYmVrZ3FkaXJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzODIzOTksImV4cCI6MjA1ODk1ODM5OX0.Qd_ag4x_mEwz7cjVOlBESR73MeAnptH7G16_Vv8YTys";
 
+// Local storage admin cache key
+const ADMIN_AUTH_CACHE_KEY = "adminAuth";
+const ADMIN_LAST_ACTIVITY_CACHE_KEY = "adminLastActivity";
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
@@ -18,40 +22,83 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Enhanced helper function to check if current user is admin
+// Cache admin status for better performance
+let cachedAdminStatus: boolean | null = null;
+let adminStatusCacheTime = 0;
+const ADMIN_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Check if the current user is an admin with caching for better performance
+ * @returns Boolean indicating if the user is admin
+ */
 export const isUserAdmin = async (): Promise<boolean> => {
   try {
+    const now = Date.now();
+    
+    // Return cached value if still valid
+    if (cachedAdminStatus !== null && (now - adminStatusCacheTime) < ADMIN_CACHE_DURATION) {
+      console.log("Using cached admin status:", cachedAdminStatus);
+      return cachedAdminStatus;
+    }
+    
     // First, check if we have a session
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) {
       console.log("No active session found");
+      cachedAdminStatus = false;
+      adminStatusCacheTime = now;
       return false;
     }
     
-    // Then check admin status with the RPC function
+    // Try RPC function first - most reliable method
     const { data: isAdmin, error } = await supabase.rpc('is_admin');
     
-    if (error) {
-      console.error('Error checking admin status via RPC:', error);
-      
-      // Fallback: try direct query to profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', sessionData.session.user.id)
-        .single();
-      
-      if (profileError) {
-        console.error('Error checking admin status via profiles:', profileError);
-        return false;
-      }
-      
-      return profileData?.role === 'admin';
+    if (!error) {
+      // Cache and return RPC result
+      cachedAdminStatus = Boolean(isAdmin);
+      adminStatusCacheTime = now;
+      return cachedAdminStatus;
     }
     
-    return Boolean(isAdmin);
+    console.error('Error checking admin status via RPC:', error);
+    
+    // Fallback: direct query to profiles table
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', sessionData.session.user.id)
+      .single();
+    
+    if (profileError) {
+      console.error('Error checking admin status via profiles:', profileError);
+      cachedAdminStatus = false;
+      adminStatusCacheTime = now;
+      return false;
+    }
+    
+    cachedAdminStatus = profileData?.role === 'admin';
+    adminStatusCacheTime = now;
+    return cachedAdminStatus;
   } catch (error) {
     console.error('Exception checking admin status:', error);
     return false;
   }
+};
+
+/**
+ * Clear admin status cache
+ */
+export const clearAdminCache = () => {
+  cachedAdminStatus = null;
+  adminStatusCacheTime = 0;
+  localStorage.removeItem(ADMIN_AUTH_CACHE_KEY);
+  localStorage.removeItem(ADMIN_LAST_ACTIVITY_CACHE_KEY);
+};
+
+/**
+ * Sign out and clear all admin data
+ */
+export const adminSignOut = async () => {
+  clearAdminCache();
+  return await supabase.auth.signOut();
 };
