@@ -11,10 +11,10 @@ export const useContentGenerator = (onSuccessCallback: () => void) => {
   const generateSpiritualContent = async () => {
     setIsGenerating(true);
     try {
-      // Gerar conteúdo localmente para evitar problemas de permissão
+      // Generate content locally to avoid permission issues
       const generatedContent = generateLocalSpiritualContent(3);
       
-      // Preparar os itens para inserção no Supabase
+      // Prepare items for insertion into Supabase
       const itemsToInsert = generatedContent.map(item => ({
         title: item.title,
         type: item.type,
@@ -24,7 +24,8 @@ export const useContentGenerator = (onSuccessCallback: () => void) => {
         views: 0
       }));
       
-      // Inserir os itens no banco de dados
+      // Insert directly into the acervo_items table
+      // This avoids the permission issue with the users table
       const { error: insertError } = await supabase
         .from('acervo_items')
         .insert(itemsToInsert);
@@ -32,11 +33,11 @@ export const useContentGenerator = (onSuccessCallback: () => void) => {
       if (insertError) throw insertError;
       
       toast({
-        title: "Conteúdo gerado",
+        title: "Conteúdo gerado com sucesso",
         description: `${generatedContent.length} novos itens de conteúdo espiritual foram adicionados.`,
       });
       
-      // Atualizar os dados
+      // Refresh data
       onSuccessCallback();
     } catch (error) {
       console.error("Error generating content:", error);
