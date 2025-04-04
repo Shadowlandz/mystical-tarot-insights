@@ -1,309 +1,45 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, RefreshCw, AlertCircle, ShieldAlert } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { AcervoItemCard } from "@/components/admin/acervo/AcervoItemCard";
+import { Plus, RefreshCw } from "lucide-react";
+import { useAdminVideos } from "@/hooks/useAdminVideos";
 import { AcervoDialog } from "@/components/admin/acervo/AcervoDialog";
+import { SearchAndFilterBar } from "@/components/admin/videos/SearchAndFilterBar";
+import { VideosList } from "@/components/admin/videos/VideosList";
+import { ErrorDisplay } from "@/components/admin/shared/ErrorDisplay";
+import { DeleteConfirmationDialog } from "@/components/admin/shared/DeleteConfirmationDialog";
 import { StudyCardProps } from "@/components/StudyCard";
-import { supabase, isUserAdmin } from "@/integrations/supabase/client";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
-import { convertArrayToStudyCardProps, convertToStudyCardProps } from "@/types/acervo";
-import { ContentType } from "@/components/admin/acervo/AcervoTypeUtils";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const AdminVideosPage = () => {
-  const { toast } = useToast();
-  const [items, setItems] = useState<StudyCardProps[]>([]);
-  const [filteredItems, setFilteredItems] = useState<StudyCardProps[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    items,
+    isLoading,
+    isAdmin,
+    isCheckingAdmin,
+    hasError,
+    errorMessage,
+    searchQuery,
+    setSearchQuery,
+    sortBy,
+    setSortBy,
+    fetchItems,
+    handleAddItem,
+    handleEditItem,
+    handleDeleteItem
+  } = useAdminVideos();
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<StudyCardProps | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("recent");
-  const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
-
-  useEffect(() => {
-    checkAdminStatus();
-  }, []);
-
-  useEffect(() => {
-    if (isAdmin) {
-      fetchItems();
-    }
-  }, [isAdmin]);
-
-  const checkAdminStatus = async () => {
-    setIsCheckingAdmin(true);
-    try {
-      const adminStatus = await isUserAdmin();
-      setIsAdmin(adminStatus);
-      
-      if (!adminStatus) {
-        setHasError(true);
-        setErrorMessage("Você não tem permissões de administrador para gerenciar vídeos. Entre em contato com o administrador do sistema.");
-        toast({
-          title: "Acesso restrito",
-          description: "Você não tem permissões para gerenciar vídeos.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error checking admin status:", error);
-      setHasError(true);
-      setErrorMessage("Não foi possível verificar suas permissões. Tente novamente mais tarde.");
-    } finally {
-      setIsCheckingAdmin(false);
-    }
-  };
-
-  const fetchItems = async () => {
-    setIsLoading(true);
-    setHasError(false);
-    try {
-      const { data, error } = await supabase
-        .from('acervo_items')
-        .select('*')
-        .eq('type', 'video')
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      const convertedData = convertArrayToStudyCardProps(data || []);
-      setItems(convertedData);
-      setFilteredItems(convertedData);
-    } catch (error) {
-      console.error("Error fetching videos:", error);
-      setHasError(true);
-      setErrorMessage("Não foi possível carregar os vídeos. Verifique se você tem permissões de administrador.");
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os vídeos. Verifique suas permissões.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let filtered = [...items];
-    
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(item => 
-        item.title.toLowerCase().includes(query) || 
-        (item.excerpt && item.excerpt.toLowerCase().includes(query))
-      );
-    }
-    
-    if (sortBy === "recent") {
-      filtered.sort((a, b) => new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime());
-    } else if (sortBy === "views") {
-      filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
-    } else if (sortBy === "title") {
-      filtered.sort((a, b) => a.title.localeCompare(b.title));
-    }
-    
-    setFilteredItems(filtered);
-  }, [items, searchQuery, sortBy]);
-
-  const handleAddItem = async (formValues) => {
-    try {
-      // Ensure excerpt has a default value if not provided
-      const excerpt = formValues.excerpt || "";
-      
-      const newItem = {
-        title: formValues.title,
-        type: "video" as ContentType,
-        thumbnail: formValues.thumbnail,
-        excerpt: excerpt,
-        link: formValues.link,
-      };
-      
-      const { data, error } = await supabase
-        .from('acervo_items')
-        .insert(newItem)
-        .select();
-      
-      if (error) {
-        console.error("Database error:", error);
-        if (error.code === '42501') {
-          await checkAdminStatus(); // Recheck admin status
-          throw new Error("Você não tem permissão para adicionar vídeos. Verifique se você tem perfil de administrador.");
-        } else {
-          throw new Error(`Erro ao adicionar vídeo: ${error.message || error.details || "Erro de banco de dados"}`);
-        }
-      }
-      
-      const insertedItem = data && data.length > 0 ? data[0] : null;
-      
-      if (insertedItem) {
-        const convertedItem = convertToStudyCardProps(insertedItem);
-        setItems(prevItems => [convertedItem, ...prevItems]);
-      }
-      
-      setIsAddDialogOpen(false);
-      
-      toast({
-        title: "Vídeo adicionado",
-        description: "O novo vídeo foi adicionado ao acervo com sucesso.",
-      });
-    } catch (error) {
-      console.error("Error adding video:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível adicionar o vídeo. Verifique suas permissões.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleEditItem = async (updatedItem: StudyCardProps) => {
-    try {
-      const { data, error } = await supabase
-        .from('acervo_items')
-        .select('id')
-        .eq('type', 'video')
-        .limit(100);
-      
-      if (error) {
-        if (error.code === '42501') {
-          await checkAdminStatus(); // Recheck admin status
-          throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador.");
-        } else {
-          throw error;
-        }
-      }
-      
-      const dbItem = data.find(item => {
-        const convertedId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || 0;
-        return convertedId === updatedItem.id;
-      });
-      
-      if (!dbItem) {
-        throw new Error("Item não encontrado no banco de dados");
-      }
-      
-      const { error: updateError } = await supabase
-        .from('acervo_items')
-        .update({
-          title: updatedItem.title,
-          type: "video",
-          thumbnail: updatedItem.thumbnail,
-          excerpt: updatedItem.excerpt || "",
-          link: updatedItem.link,
-        })
-        .eq('id', dbItem.id);
-      
-      if (updateError) {
-        if (updateError.code === '42501') {
-          await checkAdminStatus(); // Recheck admin status
-          throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador.");
-        } else {
-          throw updateError;
-        }
-      }
-      
-      setItems(prevItems => 
-        prevItems.map(item => 
-          item.id === updatedItem.id ? updatedItem : item
-        )
-      );
-      
-      setEditingItem(null);
-      
-      toast({
-        title: "Vídeo atualizado",
-        description: "As alterações foram salvas com sucesso.",
-      });
-    } catch (error) {
-      console.error("Error updating video:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível atualizar o vídeo. Verifique suas permissões.",
-        variant: "destructive",
-      });
-    }
-  };
-
+  
   const handleDeleteConfirm = async () => {
-    if (!deletingId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('acervo_items')
-        .select('id')
-        .eq('type', 'video')
-        .limit(100);
-      
-      if (error) {
-        if (error.code === '42501') {
-          await checkAdminStatus(); // Recheck admin status
-          throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador.");
-        } else {
-          throw error;
-        }
+    if (deletingId) {
+      const success = await handleDeleteItem(deletingId);
+      if (success) {
+        setIsDeleteDialogOpen(false);
+        setDeletingId(null);
       }
-      
-      const dbItem = data.find(item => {
-        const convertedId = parseInt(item.id.replace(/-/g, '').substring(0, 8), 16) || 0;
-        return convertedId === deletingId;
-      });
-      
-      if (!dbItem) {
-        throw new Error("Item não encontrado no banco de dados");
-      }
-      
-      const { error: deleteError } = await supabase
-        .from('acervo_items')
-        .delete()
-        .eq('id', dbItem.id);
-      
-      if (deleteError) {
-        if (deleteError.code === '42501') {
-          await checkAdminStatus(); // Recheck admin status
-          throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador.");
-        } else {
-          throw deleteError;
-        }
-      }
-      
-      setItems(prevItems => prevItems.filter(item => item.id !== deletingId));
-      setIsDeleteDialogOpen(false);
-      setDeletingId(null);
-      
-      toast({
-        title: "Vídeo excluído",
-        description: "O vídeo foi removido do acervo com sucesso.",
-      });
-    } catch (error) {
-      console.error("Error deleting video:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível excluir o vídeo. Verifique suas permissões.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -340,90 +76,32 @@ const AdminVideosPage = () => {
         )}
       </div>
 
-      {hasError && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Erro no carregamento</AlertTitle>
-          <AlertDescription>
-            {errorMessage}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {!isAdmin && (
-        <Alert variant="destructive" className="mb-6">
-          <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Acesso restrito</AlertTitle>
-          <AlertDescription>
-            Você não tem permissões de administrador para gerenciar vídeos.
-            Entre em contato com o administrador do sistema para solicitar acesso.
-          </AlertDescription>
-        </Alert>
-      )}
+      <ErrorDisplay 
+        isAdmin={isAdmin}
+        hasError={hasError}
+        errorMessage={errorMessage}
+      />
 
       {isAdmin && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <Input
-              placeholder="Buscar por título ou descrição..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="md:max-w-sm"
-            />
-            <Select onValueChange={setSortBy} defaultValue="recent">
-              <SelectTrigger className="md:max-w-xs">
-                <SelectValue placeholder="Ordenar por" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recent">Mais Recentes</SelectItem>
-                <SelectItem value="views">Mais Visualizados</SelectItem>
-                <SelectItem value="title">Título (A-Z)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <SearchAndFilterBar
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+          />
 
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="animate-pulse rounded-md p-4 bg-muted">
-                  <div className="h-40 bg-secondary rounded-md mb-2"></div>
-                  <div className="h-6 bg-secondary rounded-md mb-2"></div>
-                  <div className="h-4 bg-secondary rounded-md"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              {filteredItems.length === 0 ? (
-                <div className="text-center py-12 bg-muted/30 rounded-lg">
-                  <div className="text-4xl mb-2">🎬</div>
-                  <h3 className="text-xl font-semibold mb-2">Nenhum vídeo encontrado</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Adicione novos vídeos ou altere os critérios de busca.
-                  </p>
-                  <Button onClick={() => setIsAddDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Adicionar Vídeo
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {filteredItems.map((item) => (
-                    <AcervoItemCard
-                      key={item.id}
-                      item={item}
-                      onEdit={(item) => setEditingItem(item)}
-                      onDelete={(id) => {
-                        setDeletingId(id);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                      onPreview={handlePreviewVideo}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+          <VideosList 
+            items={items}
+            isLoading={isLoading}
+            onEdit={(item) => setEditingItem(item)}
+            onDelete={(id) => {
+              setDeletingId(id);
+              setIsDeleteDialogOpen(true);
+            }}
+            onPreview={handlePreviewVideo}
+            onAddClick={() => setIsAddDialogOpen(true)}
+          />
 
           <AcervoDialog
             open={isAddDialogOpen}
@@ -440,25 +118,13 @@ const AdminVideosPage = () => {
             lockType={true}
           />
 
-          <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Confirmar Exclusão</DialogTitle>
-                <DialogDescription>
-                  Tem certeza de que deseja excluir este vídeo do acervo? Esta ação
-                  não pode ser desfeita.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button variant="destructive" onClick={handleDeleteConfirm}>
-                  Excluir
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <DeleteConfirmationDialog
+            isOpen={isDeleteDialogOpen}
+            setIsOpen={setIsDeleteDialogOpen}
+            onConfirm={handleDeleteConfirm}
+            title="Confirmar Exclusão"
+            description="Tem certeza de que deseja excluir este vídeo do acervo? Esta ação não pode ser desfeita."
+          />
         </>
       )}
     </div>

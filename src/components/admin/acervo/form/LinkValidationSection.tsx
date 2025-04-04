@@ -18,7 +18,9 @@ export function LinkValidationSection() {
             <Input placeholder="https://example.com/content" {...field} />
           </FormControl>
           <FormDescription>
-            Insira a URL do conteúdo (vídeo, artigo ou documento)
+            Insira a URL do conteúdo (vídeo, artigo ou documento).
+            Para vídeos do YouTube, você pode usar tanto o formato completo (https://www.youtube.com/watch?v=ID)
+            quanto o formato encurtado (https://youtu.be/ID).
           </FormDescription>
           <FormMessage />
         </FormItem>
