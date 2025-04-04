@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Loader2, Settings } from "lucide-react";
+import { RefreshCw, Loader2, Settings, BarChart2, TrendingUp, CircleSlash } from "lucide-react";
 import { StatisticsCards } from "@/components/admin/dashboard/StatisticsCards";
 import { ContentCatalogSection } from "@/components/admin/dashboard/ContentCatalogSection";
 import { useAcervoData } from "@/hooks/useAcervoData";
@@ -17,11 +17,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; 
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AdminDashboardPage = () => {
   const { catalogItems, stats, isLoading, fetchData } = useAcervoData();
   const [showGeneratorSettings, setShowGeneratorSettings] = useState(false);
   const [contentCount, setContentCount] = useState(3);
+  const [selectedTab, setSelectedTab] = useState("overview");
   
   const { isGenerating, generateSpiritualContent } = useContentGenerator({
     onSuccessCallback: fetchData,
@@ -100,8 +103,102 @@ const AdminDashboardPage = () => {
         </div>
       </div>
 
-      <StatisticsCards stats={stats} isLoading={isLoading} />
-      <ContentCatalogSection items={catalogItems} isLoading={isLoading} />
+      <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+        <TabsList className="grid grid-cols-3 mb-4">
+          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="analytics">Análise Detalhada</TabsTrigger>
+          <TabsTrigger value="content">Gestão de Conteúdo</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview">
+          <StatisticsCards stats={stats} isLoading={isLoading} />
+          <ContentCatalogSection items={catalogItems} isLoading={isLoading} />
+        </TabsContent>
+        
+        <TabsContent value="analytics">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart2 className="h-4 w-4" />
+                  Distribuição por Tipo de Conteúdo
+                </CardTitle>
+                <CardDescription>
+                  Análise por categoria de conteúdo espiritual
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-80 flex items-center justify-center">
+                {isLoading ? (
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                ) : stats.totalItems === 0 ? (
+                  <div className="text-center text-muted-foreground">
+                    <CircleSlash className="h-16 w-16 mx-auto mb-2 opacity-20" />
+                    <p>Nenhum conteúdo cadastrado</p>
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="flex gap-4">
+                      {stats.videoCount > 0 && (
+                        <div className="text-center">
+                          <div className="text-3xl font-bold">{stats.videoCount}</div>
+                          <div className="text-sm text-muted-foreground">Vídeos</div>
+                        </div>
+                      )}
+                      {stats.articleCount > 0 && (
+                        <div className="text-center">
+                          <div className="text-3xl font-bold">{stats.articleCount}</div>
+                          <div className="text-sm text-muted-foreground">Artigos</div>
+                        </div>
+                      )}
+                      {stats.documentCount > 0 && (
+                        <div className="text-center">
+                          <div className="text-3xl font-bold">{stats.documentCount}</div>
+                          <div className="text-sm text-muted-foreground">Documentos</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Tendências de Engajamento
+                </CardTitle>
+                <CardDescription>
+                  Taxa de visualização e interação por conteúdo
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-80 flex items-center justify-center">
+                {isLoading ? (
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                ) : stats.totalViews === 0 ? (
+                  <div className="text-center text-muted-foreground">
+                    <CircleSlash className="h-16 w-16 mx-auto mb-2 opacity-20" />
+                    <p>Nenhuma visualização registrada</p>
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center">
+                    <div className="text-5xl font-bold">{stats.totalViews}</div>
+                    <div className="text-lg text-muted-foreground">Visualizações totais</div>
+                    
+                    <div className="text-sm mt-4 text-muted-foreground">
+                      Média de {(stats.totalViews / stats.totalItems).toFixed(1)} visualizações por item
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="content">
+          <ContentCatalogSection items={catalogItems} isLoading={isLoading} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -32,7 +32,7 @@ const VideoViewPage = () => {
           .from('acervo_items')
           .select('*')
           .eq('type', 'video')
-          .limit(100); // Get all videos, then filter by converted ID
+          .limit(100);
         
         if (error) throw error;
         
@@ -59,7 +59,6 @@ const VideoViewPage = () => {
             };
             
             setVideo(videoWithNumericId);
-            console.log("Loaded video:", videoWithNumericId);
           } else {
             setError("Vídeo não encontrado");
           }
@@ -154,7 +153,6 @@ const VideoViewPage = () => {
         <div className="prose dark:prose-invert max-w-none">
           <p className="text-lg">{video.excerpt}</p>
           
-          {/* Em uma implementação real, aqui viria o conteúdo completo do vídeo */}
           <div className="mt-8 p-6 bg-muted/30 rounded-lg">
             <h2 className="text-xl font-mystical mb-4">Sobre este vídeo</h2>
             <p>
