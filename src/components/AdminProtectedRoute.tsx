@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +24,7 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
         if (data.session) {
           // Verificar se o usuário tem role 'admin' usando nossa função auxiliar
           const adminStatus = await isUserAdmin();
+          console.log("AdminProtectedRoute: Admin status check:", adminStatus);
           
           if (adminStatus) {
             localStorage.setItem("adminAuth", "true");
@@ -39,9 +41,10 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
             });
           }
         } else {
-          // Verificar autenticação baseada em localStorage (fallback)
-          const localAuth = localStorage.getItem("adminAuth") === "true";
-          setIsAuthenticated(localAuth);
+          // Sessão do Supabase não encontrada
+          localStorage.removeItem("adminAuth");
+          localStorage.removeItem("adminLastActivity");
+          setIsAuthenticated(false);
         }
       } catch (error) {
         console.error("Erro na verificação de autenticação:", error);
@@ -52,7 +55,7 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
     };
     
     checkAuth();
-  }, [toast]);
+  }, [toast, location.pathname]);
 
   useEffect(() => {
     // Se estiver autenticado, atualize o timestamp de última atividade
@@ -90,7 +93,7 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
       
       return () => clearInterval(interval);
     }
-  }, [isAuthenticated, toast]);
+  }, [isAuthenticated, toast, SESSION_TIMEOUT]);
 
   if (isLoading) {
     return (

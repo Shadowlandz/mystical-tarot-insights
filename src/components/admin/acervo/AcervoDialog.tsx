@@ -45,6 +45,7 @@ export function AcervoDialog({
         setIsCheckingAdmin(true);
         try {
           const adminStatus = await isUserAdmin();
+          console.log("Admin status check result:", adminStatus);
           setIsAdmin(adminStatus);
         } catch (error) {
           console.error("Error checking admin status:", error);
@@ -81,6 +82,7 @@ export function AcervoDialog({
 
   const handleSubmit = (values: AcervoFormValues) => {
     if (!isAdmin) {
+      console.log("Submit blocked: User is not admin");
       return;
     }
     onSubmit(values);

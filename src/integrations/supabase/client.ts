@@ -49,7 +49,7 @@ export const isUserAdmin = async (): Promise<boolean> => {
       return profileData?.role === 'admin';
     }
     
-    return isAdmin || false;
+    return Boolean(isAdmin);
   } catch (error) {
     console.error('Exception checking admin status:', error);
     return false;
