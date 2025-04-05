@@ -9,8 +9,10 @@ import { ArticlesList } from "@/components/admin/articles/ArticlesList";
 import { DeleteConfirmationDialog } from "@/components/admin/articles/DeleteConfirmationDialog";
 import { StudyCardProps } from "@/components/StudyCard";
 
+type ArticleDocumentType = "article" | "document"; // Define a more specific type for articles/documents
+
 const AdminArticlesPage = () => {
-  const [activeTab, setActiveTab] = useState<ContentType>("article");
+  const [activeTab, setActiveTab] = useState<ArticleDocumentType>("article");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<StudyCardProps | null>(null);
@@ -27,7 +29,7 @@ const AdminArticlesPage = () => {
     addItem,
     editItem,
     deleteItem
-  } = useAdminArticles(activeTab);
+  } = useAdminArticles(activeTab as ContentType);
 
   // Handle add item
   const handleAddItem = async (formValues) => {
@@ -74,7 +76,7 @@ const AdminArticlesPage = () => {
       />
 
       <Tabs value={activeTab} onValueChange={(value) => {
-        setActiveTab(value as ContentType);
+        setActiveTab(value as ArticleDocumentType);
         setSearchQuery("");
       }} className="mb-6">
         <TabsList className="grid w-full md:w-[400px] grid-cols-2">
