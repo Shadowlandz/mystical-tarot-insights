@@ -9,6 +9,7 @@ import { LinkValidationSection } from "./form/LinkValidationSection";
 import { ThumbnailPreview } from "./form/ThumbnailPreview";
 import { ExcerptField } from "./form/ExcerptField";
 import { FormFooterActions } from "./form/FormFooterActions";
+import { useState } from "react";
 
 export { type AcervoFormValues } from "./form-schema";
 
@@ -27,6 +28,8 @@ export function AcervoForm({
   isEditing, 
   lockType = false 
 }: AcervoFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const form = useForm<AcervoFormValues>({
     resolver: zodResolver(acervoFormSchema),
     defaultValues: defaultValues || {
@@ -42,10 +45,12 @@ export function AcervoForm({
   
   const handleFormSubmit = async (values: AcervoFormValues) => {
     try {
-      // Simplified form submission without validation
-      onSubmit(values);
+      setIsSubmitting(true);
+      await onSubmit(values);
     } catch (error) {
       toast.error("Erro ao processar formulário: " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -61,7 +66,7 @@ export function AcervoForm({
         <FormFooterActions 
           onCancel={onCancel} 
           isEditing={isEditing} 
-          isValidating={false}
+          isValidating={isSubmitting}
           isFetchingMetadata={false}
         />
       </form>

@@ -10,6 +10,7 @@ interface ThumbnailPreviewProps {
 
 export function ThumbnailPreview({ type }: ThumbnailPreviewProps) {
   const form = useFormContext<AcervoFormValues>();
+  const thumbnailValue = form.watch("thumbnail");
 
   return (
     <FormField

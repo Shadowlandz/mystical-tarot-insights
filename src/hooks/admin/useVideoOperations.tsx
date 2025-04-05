@@ -23,7 +23,7 @@ export function useVideoOperations() {
       const newItem = {
         title: formValues.title,
         type: "video",
-        thumbnail: formValues.thumbnail,
+        thumbnail: formValues.thumbnail || "", // Will come from metadata extraction
         excerpt: excerpt,
         link: formValues.link,
       };
