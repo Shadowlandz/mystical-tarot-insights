@@ -19,6 +19,7 @@ interface AcervoFormProps {
   onCancel: () => void;
   isEditing: boolean;
   lockType?: boolean;
+  isFetchingMetadata?: boolean;
 }
 
 export function AcervoForm({ 
@@ -26,7 +27,8 @@ export function AcervoForm({
   onSubmit, 
   onCancel, 
   isEditing, 
-  lockType = false 
+  lockType = false,
+  isFetchingMetadata = false
 }: AcervoFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -67,7 +69,7 @@ export function AcervoForm({
           onCancel={onCancel} 
           isEditing={isEditing} 
           isValidating={isSubmitting}
-          isFetchingMetadata={false}
+          isFetchingMetadata={isFetchingMetadata}
         />
       </form>
     </FormProvider>

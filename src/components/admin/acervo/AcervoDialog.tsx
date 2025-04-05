@@ -25,6 +25,7 @@ interface AcervoDialogProps {
   item?: StudyCardProps;
   defaultType?: ContentType;
   lockType?: boolean;
+  isFetchingMetadata?: boolean;
 }
 
 export function AcervoDialog({
@@ -33,7 +34,8 @@ export function AcervoDialog({
   onSubmit,
   item,
   defaultType,
-  lockType = false
+  lockType = false,
+  isFetchingMetadata = false
 }: AcervoDialogProps) {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(true);
@@ -132,6 +134,7 @@ export function AcervoDialog({
             onCancel={handleCancel}
             isEditing={isEditing}
             lockType={lockType}
+            isFetchingMetadata={isFetchingMetadata}
           />
         )}
       </DialogContent>

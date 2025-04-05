@@ -25,7 +25,8 @@ const AdminVideosPage = () => {
     fetchItems,
     handleAddItem,
     handleEditItem,
-    handleDeleteItem
+    handleDeleteItem,
+    isFetchingMetadata
   } = useAdminVideos();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -108,6 +109,7 @@ const AdminVideosPage = () => {
             setOpen={setIsAddDialogOpen}
             onSubmit={handleAddItem}
             defaultType="video"
+            isFetchingMetadata={isFetchingMetadata}
           />
 
           <AcervoDialog

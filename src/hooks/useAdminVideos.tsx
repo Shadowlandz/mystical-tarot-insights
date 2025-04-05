@@ -36,6 +36,7 @@ export function useAdminVideos() {
   const { 
     hasError: operationsHasError,
     errorMessage: operationsErrorMessage,
+    isFetchingMetadata,
     handleAddItem: addItem,
     handleEditItem: editItem,
     handleDeleteItem: deleteItem
@@ -93,6 +94,7 @@ export function useAdminVideos() {
     fetchItems,
     handleAddItem,
     handleEditItem,
-    handleDeleteItem
+    handleDeleteItem,
+    isFetchingMetadata
   };
 }

@@ -1,9 +1,10 @@
 
 import { useState } from "react";
-import { supabase, isUserAdmin } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { StudyCardProps } from "@/components/StudyCard";
 import { convertToStudyCardProps } from "@/types/acervo";
+import { extractVideoMetadata } from "@/utils/videoMetadataFetcher";
 
 /**
  * Hook for video CRUD operations
@@ -13,17 +14,42 @@ export function useVideoOperations() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   
   // Add new video item
   const handleAddItem = async (formValues: any) => {
     try {
+      setIsLoading(true);
+      
+      let thumbnailUrl = formValues.thumbnail || "";
+      let title = formValues.title;
+      
+      // Se não tiver thumbnail e tiver link, tenta extrair metadados do vídeo
+      if ((!thumbnailUrl || thumbnailUrl.trim() === "") && formValues.link) {
+        setIsFetchingMetadata(true);
+        try {
+          const metadata = await extractVideoMetadata(formValues.link);
+          if (metadata.thumbnail) {
+            thumbnailUrl = metadata.thumbnail;
+          }
+          // Se o título estiver vazio e encontrarmos um título no metadata, use-o
+          if ((!title || title.trim() === "") && metadata.title) {
+            title = metadata.title;
+          }
+        } catch (error) {
+          console.error("Error extracting video metadata:", error);
+        } finally {
+          setIsFetchingMetadata(false);
+        }
+      }
+      
       // Ensure excerpt has a default value if not provided
       const excerpt = formValues.excerpt || "";
       
       const newItem = {
-        title: formValues.title,
+        title: title,
         type: "video",
-        thumbnail: formValues.thumbnail || "", // Will come from metadata extraction
+        thumbnail: thumbnailUrl,
         excerpt: excerpt,
         link: formValues.link,
       };
@@ -36,8 +62,7 @@ export function useVideoOperations() {
       if (error) {
         console.error("Database error:", error);
         if (error.code === '42501') {
-          await isUserAdmin(); // Recheck admin status
-          throw new Error("Você não tem permissão para adicionar vídeos. Verifique se você tem perfil de administrador.");
+          throw new Error("Você não tem permissão para adicionar vídeos. Verifique se você tem perfil de administrador. Código de erro: " + error.code);
         } else {
           throw new Error(`Erro ao adicionar vídeo: ${error.message || error.details || "Erro de banco de dados"}`);
         }
@@ -60,12 +85,16 @@ export function useVideoOperations() {
         variant: "destructive",
       });
       return { success: false, item: null };
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Edit item
   const handleEditItem = async (updatedItem: StudyCardProps) => {
     try {
+      setIsLoading(true);
+      
       const { data, error } = await supabase
         .from('acervo_items')
         .select('id')
@@ -74,8 +103,7 @@ export function useVideoOperations() {
       
       if (error) {
         if (error.code === '42501') {
-          await isUserAdmin(); // Recheck admin status
-          throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador.");
+          throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador. Código de erro: " + error.code);
         } else {
           throw error;
         }
@@ -103,8 +131,7 @@ export function useVideoOperations() {
       
       if (updateError) {
         if (updateError.code === '42501') {
-          await isUserAdmin(); // Recheck admin status
-          throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador.");
+          throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador. Código de erro: " + updateError.code);
         } else {
           throw updateError;
         }
@@ -124,6 +151,8 @@ export function useVideoOperations() {
         variant: "destructive",
       });
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -132,6 +161,8 @@ export function useVideoOperations() {
     if (!itemId) return false;
     
     try {
+      setIsLoading(true);
+      
       const { data, error } = await supabase
         .from('acervo_items')
         .select('id')
@@ -140,8 +171,7 @@ export function useVideoOperations() {
       
       if (error) {
         if (error.code === '42501') {
-          await isUserAdmin(); // Recheck admin status
-          throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador.");
+          throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador. Código de erro: " + error.code);
         } else {
           throw error;
         }
@@ -163,8 +193,7 @@ export function useVideoOperations() {
       
       if (deleteError) {
         if (deleteError.code === '42501') {
-          await isUserAdmin(); // Recheck admin status
-          throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador.");
+          throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador. Código de erro: " + deleteError.code);
         } else {
           throw deleteError;
         }
@@ -184,6 +213,8 @@ export function useVideoOperations() {
         variant: "destructive",
       });
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -194,6 +225,7 @@ export function useVideoOperations() {
     setHasError,
     errorMessage,
     setErrorMessage,
+    isFetchingMetadata,
     handleAddItem,
     handleEditItem,
     handleDeleteItem
