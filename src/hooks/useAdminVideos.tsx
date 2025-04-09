@@ -49,8 +49,10 @@ export function useAdminVideos() {
   // Wrap the add item function to update local state
   const handleAddItem = async (formValues: any) => {
     const result = await addItem(formValues);
-    if (result.success && result.item) {
-      setItems(prevItems => [result.item!, ...prevItems]);
+    
+    // Fix TypeScript error by checking if result is an object with success property
+    if (result && typeof result === 'object' && 'success' in result && result.success && result.item) {
+      setItems(prevItems => [result.item, ...prevItems]);
       return true;
     }
     return false;
