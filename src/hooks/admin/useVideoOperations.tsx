@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { StudyCardProps } from "@/components/StudyCard";
 import { convertToStudyCardProps } from "@/types/acervo";
-import { extractVideoMetadata } from "@/utils/videoMetadataFetcher";
+import { fetchVideoMetadata } from "@/utils/videoMetadataFetcher";
 
 /**
  * Hook for video CRUD operations
@@ -28,7 +28,7 @@ export function useVideoOperations() {
       if ((!thumbnailUrl || thumbnailUrl.trim() === "") && formValues.link) {
         setIsFetchingMetadata(true);
         try {
-          const metadata = await extractVideoMetadata(formValues.link);
+          const metadata = await fetchVideoMetadata(formValues.link);
           if (metadata.thumbnail) {
             thumbnailUrl = metadata.thumbnail;
           }
