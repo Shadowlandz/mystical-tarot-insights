@@ -5,6 +5,13 @@ import Footer from "@/components/Footer";
 import TarotReading from "@/components/TarotReading";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HelpCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const TarotPage = () => {
   const [activeTab, setActiveTab] = useState("single");
@@ -40,9 +47,8 @@ const TarotPage = () => {
                 <TabsTrigger 
                   value="celtic"
                   className="font-mystical data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  disabled
                 >
-                  Cruz Celta (Em breve)
+                  Cruz Celta
                 </TabsTrigger>
               </TabsList>
               
@@ -68,15 +74,28 @@ const TarotPage = () => {
                 </TabsContent>
                 
                 <TabsContent value="celtic" className="mt-0">
-                  <div className="text-center">
-                    <h2 className="text-xl font-mystical text-accent mb-2">Cruz Celta</h2>
-                    <p className="text-muted-foreground mb-6">
-                      Esta tiragem detalhada de 10 cartas será lançada em breve.
+                  <div className="text-center mb-6">
+                    <h2 className="text-xl font-mystical text-accent mb-2">
+                      Cruz Celta 
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <HelpCircle className="h-4 w-4 inline-block ml-1 mb-1 text-muted-foreground" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>A Cruz Celta é uma tiragem completa de 10 cartas que explora diferentes aspectos da sua situação.</p>
+                            <p className="mt-1">As posições representam: 1. Situação presente, 2. Desafio imediato, 3. Passado, 4. Futuro, 5. Objetivo consciente, 6. Inconsciente, 7. Atitude atual, 8. Influências externas, 9. Esperanças/medos, 10. Resultado final</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </h2>
+                    <p className="text-muted-foreground text-sm">
+                      Uma leitura detalhada com 10 cartas que explora múltiplos aspectos da sua situação e proporciona uma visão completa.
                     </p>
-                    <Button disabled className="bg-primary/50 text-primary-foreground/70 font-mystical cursor-not-allowed">
-                      Em Desenvolvimento
-                    </Button>
                   </div>
+                  <TarotReading cardCount={10} />
                 </TabsContent>
               </div>
             </Tabs>
