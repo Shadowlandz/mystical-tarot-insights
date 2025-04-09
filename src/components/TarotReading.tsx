@@ -5,9 +5,11 @@ import { Button } from "./ui/button";
 import { tarotData } from "@/data/tarotData";
 import { shuffle } from "@/lib/utils";
 import { Input } from "./ui/input";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTarotAI, TarotCard as TarotCardType } from "@/hooks/useTarotAI";
+import { Link } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 interface TarotReadingProps {
   cardCount: 1 | 3 | 10;
@@ -24,7 +26,7 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
     question3: "",
   });
   const { toast } = useToast();
-  const { generateReading: generateAIReading, isGenerating } = useTarotAI();
+  const { generateReading: generateAIReading, isGenerating, hasApiKey } = useTarotAI();
   
   const generateTarotReading = () => {
     // Para Cruz Celta, exigir que pelo menos uma pergunta seja preenchida
@@ -64,8 +66,8 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
       questions.question3
     ].filter(q => q.trim() !== "");
 
-    // Se a tiragem for mais complexa ou tivermos perguntas, use a IA
-    if (cardCount > 1 || userQuestions.length > 0) {
+    // Se a tiragem for mais complexa ou tivermos perguntas, e temos API key, use a IA
+    if ((cardCount > 1 || userQuestions.length > 0) && hasApiKey) {
       try {
         const aiInterpretation = await generateAIReading(
           selectedCards,
@@ -81,7 +83,7 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
         generateSimpleInterpretation();
       }
     } else {
-      // Para uma carta sem perguntas, usamos interpretação simples
+      // Para uma carta sem perguntas ou sem API key, usamos interpretação simples
       generateSimpleInterpretation();
     }
   };
@@ -233,6 +235,20 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
       {!isReadingGenerated ? (
         <div className="flex flex-col items-center space-y-6 animate-fade-in">
           <h2 className="text-2xl font-mystical text-accent text-glow">Tiragem de Tarô</h2>
+          
+          {!hasApiKey && cardCount > 1 && (
+            <Alert variant="warning" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>API Gemini não configurada</AlertTitle>
+              <AlertDescription>
+                A interpretação avançada com IA não está disponível. 
+                <Link to="/admin/gemini" className="text-primary ml-1 underline">
+                  Configure a API Gemini
+                </Link> para interpretações detalhadas ou continue com a interpretação básica.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <p className="text-muted-foreground text-center max-w-md">
             Concentre-se em sua pergunta ou situação enquanto prepara-se para a tiragem de {cardCount} {cardCount === 1 ? 'carta' : 'cartas'}.
           </p>

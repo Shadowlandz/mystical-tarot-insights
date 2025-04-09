@@ -30,6 +30,7 @@ export function useTarotAI({ apiKey }: UseTarotAIProps = {}) {
     : null;
   
   const activeApiKey = apiKey || storedApiKey;
+  const hasApiKey = !!activeApiKey;
 
   const generateReading = async (
     cards: TarotCard[], 
@@ -134,6 +135,6 @@ export function useTarotAI({ apiKey }: UseTarotAIProps = {}) {
     generateReading,
     isGenerating,
     error,
-    hasApiKey: !!activeApiKey,
+    hasApiKey,
   };
 }
