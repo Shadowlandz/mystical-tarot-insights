@@ -6,6 +6,12 @@ import { useVideoFilters } from "./admin/useVideoFilters";
 import { useVideoOperations } from "./admin/useVideoOperations";
 import { StudyCardProps } from "@/components/StudyCard";
 
+// Define um tipo para o resultado da operação de adição
+interface AddItemResult {
+  success: boolean;
+  item?: StudyCardProps;
+}
+
 export function useAdminVideos() {
   // Use the admin check hook
   const { 
@@ -61,7 +67,7 @@ export function useAdminVideos() {
   // Wrap the edit item function to update local state
   const handleEditItem = async (updatedItem: StudyCardProps) => {
     const success = await editItem(updatedItem);
-    if (success) {
+    if (success === true) {  // Explicitamente verificando se é true
       setItems(prevItems => 
         prevItems.map(item => 
           item.id === updatedItem.id ? updatedItem : item
@@ -75,7 +81,7 @@ export function useAdminVideos() {
   // Wrap the delete item function to update local state
   const handleDeleteItem = async (itemId: number) => {
     const success = await deleteItem(itemId);
-    if (success) {
+    if (success === true) {  // Explicitamente verificando se é true
       setItems(prevItems => prevItems.filter(item => item.id !== itemId));
       return true;
     }

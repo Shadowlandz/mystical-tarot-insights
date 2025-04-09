@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -93,6 +92,11 @@ export function useVideoOperations() {
       
       const insertedItem = data && data.length > 0 ? data[0] : null;
       const convertedItem = insertedItem ? convertToStudyCardProps(insertedItem) : null;
+      
+      if (!convertedItem) {
+        // Se não conseguirmos obter o item convertido, retorne apenas false
+        return false;
+      }
       
       toast({
         title: "Vídeo adicionado",
