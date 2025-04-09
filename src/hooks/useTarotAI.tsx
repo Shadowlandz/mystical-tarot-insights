@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { TarotAreaType } from "@/data/tarotAreas";
 
 export interface TarotCard {
   id: number;
@@ -39,7 +40,7 @@ export function useTarotAI({ apiKey }: UseTarotAIProps = {}) {
 
   const generateReading = async (
     cards: TarotCard[], 
-    questions: string[], 
+    areas: { primary?: TarotAreaType; secondary?: TarotAreaType }, 
     spreadType: "single" | "three" | "celtic"
   ): Promise<string> => {
     // Resetar estado
@@ -79,10 +80,14 @@ export function useTarotAI({ apiKey }: UseTarotAIProps = {}) {
         `Carta ${index + 1}: ${card.name} - ${card.meaning.upright} - Palavras-chave: ${card.meaningKeywords}`
       ).join("\n");
 
-      // Construir informações sobre as perguntas
-      const questionsInfo = questions
-        .filter(q => q.trim() !== "")
-        .map((q, index) => `Pergunta ${index + 1}: ${q}`).join("\n");
+      // Construir informações sobre as áreas de interesse
+      let areasInfo = "";
+      if (areas.primary) {
+        areasInfo += `Área Principal: ${areas.primary.name} (${areas.primary.keyword})\n`;
+      }
+      if (areas.secondary) {
+        areasInfo += `Área Secundária: ${areas.secondary.name} (${areas.secondary.keyword})`;
+      }
 
       // Construir o prompt completo
       let prompt = `Você é um especialista em tarô, com décadas de experiência em leituras e interpretações. 
@@ -94,16 +99,18 @@ export function useTarotAI({ apiKey }: UseTarotAIProps = {}) {
         ## Cartas sorteadas:
         ${cardsInfo}
 
-        ${questionsInfo ? `## Perguntas do consulente:\n${questionsInfo}` : ""}
+        ${areasInfo ? `## Áreas de interesse do consulente:\n${areasInfo}` : ""}
 
         ## Instruções para a interpretação:
         1. Você deve interpretar o significado de cada carta na posição específica, considerando suas relações com outras cartas.
-        2. Explique como as energias das cartas se relacionam com as perguntas do consulente (se fornecidas).
-        3. Seja específico, evitando generalidades que poderiam se aplicar a qualquer pessoa.
-        4. Mantenha um tom respeitoso, empático e levemente místico, mas sem exageros.
-        5. Forneça insights práticos e reflexões que o consulente possa aplicar em sua vida.
-        6. Conclua com um resumo e recomendações finais.
-        7. Formate o texto com cabeçalhos, parágrafos e seções para facilitar a leitura.
+        2. ${areas.primary ? `Foque principalmente na área de ${areas.primary.name}` : "Dê uma interpretação geral"}.
+        ${areas.secondary ? `3. Aborde também aspectos relacionados à área de ${areas.secondary.name}.` : ""}
+        ${areas.primary && areas.secondary ? `4. Explique como as áreas de ${areas.primary.name} e ${areas.secondary.name} se relacionam nesta leitura.` : ""}
+        5. Seja específico, evitando generalidades que poderiam se aplicar a qualquer pessoa.
+        6. Mantenha um tom respeitoso, empático e levemente místico, mas sem exageros.
+        7. Forneça insights práticos e reflexões que o consulente possa aplicar em sua vida.
+        8. Conclua com um resumo e recomendações finais.
+        9. Formate o texto com cabeçalhos, parágrafos e seções para facilitar a leitura.
         
         ## Interpretação completa:`;
 
@@ -143,3 +150,4 @@ export function useTarotAI({ apiKey }: UseTarotAIProps = {}) {
     hasApiKey,
   };
 }
+

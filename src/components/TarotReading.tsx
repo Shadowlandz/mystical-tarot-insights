@@ -1,15 +1,21 @@
-
 import { useState } from "react";
 import TarotCard from "./TarotCard";
 import { Button } from "./ui/button";
 import { tarotData } from "@/data/tarotData";
 import { shuffle } from "@/lib/utils";
-import { Input } from "./ui/input";
 import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTarotAI, TarotCard as TarotCardType } from "@/hooks/useTarotAI";
 import { Link } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { tarotAreas, TarotAreaType } from "@/data/tarotAreas";
 
 interface TarotReadingProps {
   cardCount: 1 | 3 | 10;
@@ -20,21 +26,20 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
   const [isReadingGenerated, setIsReadingGenerated] = useState(false);
   const [isCardsRevealed, setIsCardsRevealed] = useState(false);
   const [interpretation, setInterpretation] = useState("");
-  const [questions, setQuestions] = useState({
-    question1: "",
-    question2: "",
-    question3: "",
-  });
+  const [selectedAreas, setSelectedAreas] = useState<{
+    primary?: TarotAreaType;
+    secondary?: TarotAreaType;
+  }>({});
   const { toast } = useToast();
   const { generateReading: generateAIReading, isGenerating, hasApiKey } = useTarotAI();
   
   const generateTarotReading = () => {
-    // Para Cruz Celta, exigir que pelo menos uma pergunta seja preenchida
+    // Para Cruz Celta, exigir que pelo menos uma área seja selecionada
     if (cardCount === 10) {
-      if (!questions.question1) {
+      if (!selectedAreas.primary) {
         toast({
-          title: "Pergunta necessária",
-          description: "Por favor, preencha pelo menos a primeira pergunta para continuar.",
+          title: "Área primária necessária",
+          description: "Por favor, selecione pelo menos a área primária para continuar.",
           variant: "destructive",
         });
         return;
@@ -58,20 +63,13 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
     if (cardCount === 1) spreadType = "single";
     else if (cardCount === 3) spreadType = "three";
     else spreadType = "celtic";
-    
-    // Coletar perguntas não vazias
-    const userQuestions = [
-      questions.question1,
-      questions.question2,
-      questions.question3
-    ].filter(q => q.trim() !== "");
 
-    // Se a tiragem for mais complexa ou tivermos perguntas, e temos API key, use a IA
-    if ((cardCount > 1 || userQuestions.length > 0) && hasApiKey) {
+    // Se a tiragem for mais complexa ou tivermos áreas selecionadas, e temos API key, use a IA
+    if ((cardCount > 1 || selectedAreas.primary) && hasApiKey) {
       try {
         const aiInterpretation = await generateAIReading(
           selectedCards,
-          userQuestions,
+          selectedAreas,
           spreadType
         );
         
@@ -83,7 +81,7 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
         generateSimpleInterpretation();
       }
     } else {
-      // Para uma carta sem perguntas ou sem API key, usamos interpretação simples
+      // Para uma carta sem áreas selecionadas ou sem API key, usamos interpretação simples
       generateSimpleInterpretation();
     }
   };
@@ -92,10 +90,13 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
   const generateSimpleInterpretation = () => {
     let message = "";
     
+    const primaryArea = selectedAreas.primary?.name || "geral";
+    const secondaryArea = selectedAreas.secondary?.name;
+    
     if (cardCount === 1) {
-      message = `A carta ${selectedCards[0].name} representa ${selectedCards[0].meaning.upright}. Isso sugere que você está em um momento de ${selectedCards[0].meaningKeywords}. Reflita sobre como essa energia está presente em sua vida atualmente.`;
+      message = `A carta ${selectedCards[0].name} representa ${selectedCards[0].meaning.upright}. Isso sugere que você está em um momento de ${selectedCards[0].meaningKeywords} na área ${primaryArea}${secondaryArea ? ` e pode impactar também a área de ${secondaryArea}` : ''}. Reflita sobre como essa energia está presente em sua vida atualmente.`;
     } else if (cardCount === 3) {
-      message = `As cartas revelam uma jornada: 
+      message = `As cartas revelam uma jornada na área de ${primaryArea}${secondaryArea ? ` e ${secondaryArea}` : ''}:
               \n\n1. ${selectedCards[0].name} (Passado): ${selectedCards[0].meaning.upright} 
               \n\n2. ${selectedCards[1].name} (Presente): ${selectedCards[1].meaning.upright} 
               \n\n3. ${selectedCards[2].name} (Futuro): ${selectedCards[2].meaning.upright} 
@@ -120,8 +121,8 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
       
       // Construir a interpretação para cada posição
       message += `## Visão Geral\n\n`;
-      if (questions.question1) {
-        message += `Com base na sua pergunta "${questions.question1}", `;
+      if (primaryArea) {
+        message += `Com foco na área de ${primaryArea}${secondaryArea ? ` e ${secondaryArea}` : ''}, `;
       }
       message += `a tiragem de Cruz Celta revela um caminho transformador. Vamos analisar cada posição:\n\n`;
       
@@ -229,6 +230,36 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
       </div>
     );
   };
+
+  // Função para lidar com a seleção da área primária
+  const handlePrimaryAreaChange = (areaId: string) => {
+    const area = tarotAreas.find(a => a.id === areaId);
+    if (area) {
+      setSelectedAreas(prev => ({
+        ...prev,
+        primary: area
+      }));
+    }
+  };
+
+  // Função para lidar com a seleção da área secundária
+  const handleSecondaryAreaChange = (areaId: string) => {
+    const area = tarotAreas.find(a => a.id === areaId);
+    if (area) {
+      setSelectedAreas(prev => ({
+        ...prev,
+        secondary: area
+      }));
+    }
+  };
+
+  // Função para limpar a seleção de área secundária
+  const clearSecondaryArea = () => {
+    setSelectedAreas(prev => ({
+      ...prev,
+      secondary: undefined
+    }));
+  };
   
   return (
     <div className="w-full">
@@ -250,49 +281,67 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
           )}
           
           <p className="text-muted-foreground text-center max-w-md">
-            Concentre-se em sua pergunta ou situação enquanto prepara-se para a tiragem de {cardCount} {cardCount === 1 ? 'carta' : 'cartas'}.
+            Selecione as áreas de interesse para sua tiragem de {cardCount} {cardCount === 1 ? 'carta' : 'cartas'}.
           </p>
           
-          {/* Formulário de perguntas para Cruz Celta */}
-          {cardCount === 10 && (
-            <div className="w-full max-w-md space-y-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Sua pergunta principal *
-                </label>
-                <Input 
-                  placeholder="Ex: Qual é o caminho para meu crescimento espiritual?"
-                  value={questions.question1}
-                  onChange={(e) => setQuestions(prev => ({ ...prev, question1: e.target.value }))}
-                  className="w-full"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Pergunta adicional (opcional)
-                </label>
-                <Input 
-                  placeholder="Uma área específica de interesse"
-                  value={questions.question2}
-                  onChange={(e) => setQuestions(prev => ({ ...prev, question2: e.target.value }))}
-                  className="w-full"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Pergunta adicional (opcional)
-                </label>
-                <Input 
-                  placeholder="Outra área específica de interesse"
-                  value={questions.question3}
-                  onChange={(e) => setQuestions(prev => ({ ...prev, question3: e.target.value }))}
-                  className="w-full"
-                />
-              </div>
+          {/* Seleção de áreas para todas as tiragens */}
+          <div className="w-full max-w-md space-y-4 mt-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Área Principal {cardCount === 10 ? "*" : ""}
+              </label>
+              <Select onValueChange={handlePrimaryAreaChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione a área principal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tarotAreas.map((area) => (
+                    <SelectItem key={area.id} value={area.id}>
+                      {area.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {selectedAreas.primary?.description || "Escolha a área principal para a sua consulta"}
+              </p>
             </div>
-          )}
+            
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-sm font-medium text-foreground">
+                  Área Secundária (opcional)
+                </label>
+                {selectedAreas.secondary && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={clearSecondaryArea} 
+                    className="h-6 px-2 text-xs"
+                  >
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              <Select onValueChange={handleSecondaryAreaChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione uma área secundária (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tarotAreas
+                    .filter(area => area.id !== selectedAreas.primary?.id)
+                    .map((area) => (
+                      <SelectItem key={area.id} value={area.id}>
+                        {area.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {selectedAreas.secondary?.description || "Escolha uma área secundária para complementar a sua consulta (opcional)"}
+              </p>
+            </div>
+          </div>
           
           <Button 
             onClick={generateTarotReading}
