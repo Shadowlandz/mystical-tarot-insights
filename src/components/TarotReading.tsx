@@ -7,7 +7,7 @@ import { shuffle } from "@/lib/utils";
 import { Input } from "./ui/input";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useTarotAI } from "@/hooks/useTarotAI";
+import { useTarotAI, TarotCard as TarotCardType } from "@/hooks/useTarotAI";
 
 interface TarotReadingProps {
   cardCount: 1 | 3 | 10;
@@ -24,9 +24,9 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
     question3: "",
   });
   const { toast } = useToast();
-  const { generateReading, isGenerating } = useTarotAI();
+  const { generateReading: generateAIReading, isGenerating } = useTarotAI();
   
-  const generateReading = () => {
+  const generateTarotReading = () => {
     // Para Cruz Celta, exigir que pelo menos uma pergunta seja preenchida
     if (cardCount === 10) {
       if (!questions.question1) {
@@ -67,7 +67,7 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
     // Se a tiragem for mais complexa ou tivermos perguntas, use a IA
     if (cardCount > 1 || userQuestions.length > 0) {
       try {
-        const aiInterpretation = await generateReading(
+        const aiInterpretation = await generateAIReading(
           selectedCards,
           userQuestions,
           spreadType
@@ -279,7 +279,7 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
           )}
           
           <Button 
-            onClick={generateReading}
+            onClick={generateTarotReading}
             className="bg-primary hover:bg-primary/80 text-primary-foreground font-mystical"
           >
             Iniciar Tiragem
@@ -332,7 +332,7 @@ export default function TarotReading({ cardCount }: TarotReadingProps) {
               
               <div className="mt-6 flex justify-center">
                 <Button 
-                  onClick={generateReading}
+                  onClick={generateTarotReading}
                   variant="outline"
                   className="border-primary/30 hover:bg-primary/10 text-foreground font-mystical"
                 >
