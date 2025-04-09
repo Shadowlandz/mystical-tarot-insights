@@ -12,9 +12,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTarotAI } from "@/hooks/useTarotAI";
 
 const TarotPage = () => {
   const [activeTab, setActiveTab] = useState("single");
+  
+  // Inicializar o hook useTarotAI com a API key
+  useTarotAI({ apiKey: "AIzaSyDToDtRDN67kyOQAKwM8eEJFRQQFy2B8vQ" });
   
   return (
     <div className="min-h-screen flex flex-col bg-background bg-stars">

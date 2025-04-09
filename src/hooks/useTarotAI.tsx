@@ -24,6 +24,11 @@ export function useTarotAI({ apiKey }: UseTarotAIProps = {}) {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Se uma API key foi fornecida manualmente, armazená-la no localStorage
+  if (apiKey && typeof localStorage !== "undefined") {
+    localStorage.setItem("gemini_api_key", apiKey);
+  }
+
   // Verificar se existe uma API key armazenada no localStorage se não fornecida
   const storedApiKey = typeof localStorage !== "undefined" 
     ? localStorage.getItem("gemini_api_key") 
