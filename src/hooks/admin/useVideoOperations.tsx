@@ -16,10 +16,38 @@ export function useVideoOperations() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   
+  // Função auxiliar para tratar erros do Supabase
+  const handleSupabaseError = (error: any, operation: string) => {
+    console.error(`Error ${operation} video:`, error);
+    
+    // Tratamento específico para erro de permissão
+    if (error.code === '42501') {
+      const errorMsg = `Você não tem permissão para ${operation} vídeos. Verifique se você tem perfil de administrador.`;
+      setErrorMessage(errorMsg);
+      toast({
+        title: "Erro de permissão",
+        description: errorMsg,
+        variant: "destructive",
+      });
+    } else {
+      const errorMsg = error.message || `Não foi possível ${operation} o vídeo. Verifique suas permissões.`;
+      setErrorMessage(errorMsg);
+      toast({
+        title: "Erro",
+        description: errorMsg,
+        variant: "destructive",
+      });
+    }
+    
+    setHasError(true);
+    return false;
+  };
+  
   // Add new video item
   const handleAddItem = async (formValues: any) => {
     try {
       setIsLoading(true);
+      setHasError(false);
       
       let thumbnailUrl = formValues.thumbnail || "";
       let title = formValues.title;
@@ -60,12 +88,7 @@ export function useVideoOperations() {
         .select();
       
       if (error) {
-        console.error("Database error:", error);
-        if (error.code === '42501') {
-          throw new Error("Você não tem permissão para adicionar vídeos. Verifique se você tem perfil de administrador. Código de erro: " + error.code);
-        } else {
-          throw new Error(`Erro ao adicionar vídeo: ${error.message || error.details || "Erro de banco de dados"}`);
-        }
+        return handleSupabaseError(error, "adicionar");
       }
       
       const insertedItem = data && data.length > 0 ? data[0] : null;
@@ -77,14 +100,8 @@ export function useVideoOperations() {
       });
 
       return { success: true, item: convertedItem };
-    } catch (error) {
-      console.error("Error adding video:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível adicionar o vídeo. Verifique suas permissões.",
-        variant: "destructive",
-      });
-      return { success: false, item: null };
+    } catch (error: any) {
+      return handleSupabaseError(error, "adicionar");
     } finally {
       setIsLoading(false);
     }
@@ -94,6 +111,7 @@ export function useVideoOperations() {
   const handleEditItem = async (updatedItem: StudyCardProps) => {
     try {
       setIsLoading(true);
+      setHasError(false);
       
       const { data, error } = await supabase
         .from('acervo_items')
@@ -102,11 +120,7 @@ export function useVideoOperations() {
         .limit(100);
       
       if (error) {
-        if (error.code === '42501') {
-          throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador. Código de erro: " + error.code);
-        } else {
-          throw error;
-        }
+        return handleSupabaseError(error, "editar");
       }
       
       const dbItem = data.find(item => {
@@ -115,7 +129,14 @@ export function useVideoOperations() {
       });
       
       if (!dbItem) {
-        throw new Error("Item não encontrado no banco de dados");
+        const errorMsg = "Item não encontrado no banco de dados";
+        setErrorMessage(errorMsg);
+        toast({
+          title: "Erro",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        return false;
       }
       
       const { error: updateError } = await supabase
@@ -130,11 +151,7 @@ export function useVideoOperations() {
         .eq('id', dbItem.id);
       
       if (updateError) {
-        if (updateError.code === '42501') {
-          throw new Error("Você não tem permissão para editar vídeos. Verifique se você tem perfil de administrador. Código de erro: " + updateError.code);
-        } else {
-          throw updateError;
-        }
+        return handleSupabaseError(updateError, "editar");
       }
       
       toast({
@@ -143,14 +160,8 @@ export function useVideoOperations() {
       });
 
       return true;
-    } catch (error) {
-      console.error("Error updating video:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível atualizar o vídeo. Verifique suas permissões.",
-        variant: "destructive",
-      });
-      return false;
+    } catch (error: any) {
+      return handleSupabaseError(error, "editar");
     } finally {
       setIsLoading(false);
     }
@@ -162,6 +173,7 @@ export function useVideoOperations() {
     
     try {
       setIsLoading(true);
+      setHasError(false);
       
       const { data, error } = await supabase
         .from('acervo_items')
@@ -170,11 +182,7 @@ export function useVideoOperations() {
         .limit(100);
       
       if (error) {
-        if (error.code === '42501') {
-          throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador. Código de erro: " + error.code);
-        } else {
-          throw error;
-        }
+        return handleSupabaseError(error, "excluir");
       }
       
       const dbItem = data.find(item => {
@@ -183,7 +191,14 @@ export function useVideoOperations() {
       });
       
       if (!dbItem) {
-        throw new Error("Item não encontrado no banco de dados");
+        const errorMsg = "Item não encontrado no banco de dados";
+        setErrorMessage(errorMsg);
+        toast({
+          title: "Erro",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        return false;
       }
       
       const { error: deleteError } = await supabase
@@ -192,11 +207,7 @@ export function useVideoOperations() {
         .eq('id', dbItem.id);
       
       if (deleteError) {
-        if (deleteError.code === '42501') {
-          throw new Error("Você não tem permissão para excluir vídeos. Verifique se você tem perfil de administrador. Código de erro: " + deleteError.code);
-        } else {
-          throw deleteError;
-        }
+        return handleSupabaseError(deleteError, "excluir");
       }
       
       toast({
@@ -205,14 +216,8 @@ export function useVideoOperations() {
       });
 
       return true;
-    } catch (error) {
-      console.error("Error deleting video:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível excluir o vídeo. Verifique suas permissões.",
-        variant: "destructive",
-      });
-      return false;
+    } catch (error: any) {
+      return handleSupabaseError(error, "excluir");
     } finally {
       setIsLoading(false);
     }
