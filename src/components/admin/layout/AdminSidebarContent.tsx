@@ -1,4 +1,3 @@
-
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -13,8 +12,11 @@ import {
   SidebarGroupContent,
 } from "@/components/ui/sidebar";
 import { AdminSidebarMenu } from "./AdminSidebarMenu";
+import { BarChart2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { LayoutDashboard, Folder, Video, FileText } from "lucide-react";
 
-export function AdminSidebarContent() {
+export const AdminSidebarContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -28,7 +30,7 @@ export function AdminSidebarContent() {
   };
 
   return (
-    <>
+    <div className="flex h-full flex-col gap-2">
       <SidebarHeader className="border-b border-border/50">
         <div className="flex items-center gap-2 py-3">
           <div className="shrink-0 rounded-md bg-primary/10 p-1">
@@ -42,7 +44,60 @@ export function AdminSidebarContent() {
         <SidebarGroup>
           <SidebarGroupLabel>Principal</SidebarGroupLabel>
           <SidebarGroupContent>
-            <AdminSidebarMenu />
+            <AdminSidebarMenu>
+              <div className="px-3 py-2">
+                <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
+                  Gerenciamento
+                </h2>
+                <div className="space-y-1">
+                  <Link to="/admin/dashboard">
+                    <Button
+                      variant={location.pathname === "/admin/dashboard" ? "secondary" : "ghost"}
+                      className="w-full justify-start"
+                    >
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Link to="/admin/analytics">
+                    <Button
+                      variant={location.pathname === "/admin/analytics" ? "secondary" : "ghost"}
+                      className="w-full justify-start"
+                    >
+                      <BarChart2 className="mr-2 h-4 w-4" />
+                      Analytics
+                    </Button>
+                  </Link>
+                  <Link to="/admin/acervo">
+                    <Button
+                      variant={location.pathname === "/admin/acervo" ? "secondary" : "ghost"}
+                      className="w-full justify-start"
+                    >
+                      <Folder className="mr-2 h-4 w-4" />
+                      Acervo
+                    </Button>
+                  </Link>
+                  <Link to="/admin/videos">
+                    <Button
+                      variant={location.pathname === "/admin/videos" ? "secondary" : "ghost"}
+                      className="w-full justify-start"
+                    >
+                      <Video className="mr-2 h-4 w-4" />
+                      Vídeos
+                    </Button>
+                  </Link>
+                  <Link to="/admin/artigos">
+                    <Button
+                      variant={location.pathname === "/admin/artigos" ? "secondary" : "ghost"}
+                      className="w-full justify-start"
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Artigos
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </AdminSidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
@@ -59,6 +114,6 @@ export function AdminSidebarContent() {
           </Button>
         </div>
       </SidebarFooter>
-    </>
+    </div>
   );
-}
+};

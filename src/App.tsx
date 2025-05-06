@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,17 +10,11 @@ import SobrePage from "./pages/SobrePage";
 import NotFound from "./pages/NotFound";
 import VideoViewPage from "./pages/VideoViewPage";
 import ContentViewPage from "./pages/ContentViewPage";
-
-// Admin Pages
-import AdminLoginPage from "./pages/AdminLoginPage";
-import AdminLayout from "./components/AdminLayout";
-import AdminProtectedRoute from "./components/AdminProtectedRoute";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import AdminAcervoPage from "./pages/AdminAcervoPage";
-import AdminVideosPage from "./pages/AdminVideosPage";
-import AdminArticlesPage from "./pages/AdminArticlesPage";
-import AdminGeminiPage from "./pages/AdminGeminiPage";
-import AdminSecurityPage from "./pages/AdminSecurityPage";
+import AuthPage from "./pages/AuthPage";
+import ProfilePage from "./pages/ProfilePage";
+import SpiritualRoutinesPage from "./pages/SpiritualRoutinesPage";
+import AdminAnalyticsPage from "./pages/AdminAnalyticsPage";
+import { AuthCheck } from "./components/AuthCheck";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +33,21 @@ const App = () => (
           <Route path="/acervo/content/:id" element={<ContentViewPage />} />
           <Route path="/sobre" element={<SobrePage />} />
           
+          {/* Autenticação */}
+          <Route path="/auth" element={<AuthPage />} />
+          
+          {/* Rotas protegidas por autenticação */}
+          <Route path="/profile" element={
+            <AuthCheck>
+              <ProfilePage />
+            </AuthCheck>
+          } />
+          <Route path="/routines" element={
+            <AuthCheck>
+              <SpiritualRoutinesPage />
+            </AuthCheck>
+          } />
+          
           {/* Rotas administrativas */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={
@@ -53,6 +61,7 @@ const App = () => (
             <Route path="artigos" element={<AdminArticlesPage />} />
             <Route path="gemini" element={<AdminGeminiPage />} />
             <Route path="seguranca" element={<AdminSecurityPage />} />
+            <Route path="analytics" element={<AdminAnalyticsPage />} />
             {/* Adicione mais rotas administrativas aqui */}
           </Route>
           
