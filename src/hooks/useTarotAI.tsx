@@ -1,20 +1,10 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { TarotAreaType } from "@/data/tarotAreas";
+import { TarotCardType } from "@/data/tarotData";
 
-export interface TarotCard {
-  id: number;
-  name: string;
-  image: string;
-  meaning: {
-    upright: string;
-    reversed: string;
-  };
-  meaningKeywords: string;
-  description: string;
-}
+export interface TarotCard extends TarotCardType {}
 
 interface UseTarotAIProps {
   apiKey?: string;
@@ -39,7 +29,7 @@ export function useTarotAI({ apiKey }: UseTarotAIProps = {}) {
   const hasApiKey = !!activeApiKey;
 
   const generateReading = async (
-    cards: TarotCard[], 
+    cards: TarotCardType[], 
     areas: { primary?: TarotAreaType; secondary?: TarotAreaType }, 
     spreadType: "single" | "three" | "celtic"
   ): Promise<string> => {
@@ -150,4 +140,3 @@ export function useTarotAI({ apiKey }: UseTarotAIProps = {}) {
     hasApiKey,
   };
 }
-

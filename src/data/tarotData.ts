@@ -301,14 +301,18 @@ export const studyData = [
   }
 ];
 
-// Export the TarotCardType interface
+// Export the TarotCardType interface with required properties
 export interface TarotCardType {
   id: number;
   name: string;
   image: string;
-  keywords: string[];
-  meanings: {
-    upright: string[];
-    reversed: string[];
+  meaning: {
+    upright: string;
+    reversed: string;
   };
+  meaningKeywords: string;
+  description: string;
 }
+
+// Export the tarot cards array for use in TarotPage
+export const tarotCards = tarotData;

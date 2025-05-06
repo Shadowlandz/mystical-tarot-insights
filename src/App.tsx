@@ -16,6 +16,17 @@ import SpiritualRoutinesPage from "./pages/SpiritualRoutinesPage";
 import AdminAnalyticsPage from "./pages/AdminAnalyticsPage";
 import { AuthCheck } from "./components/AuthCheck";
 
+// Import missing admin components
+import AdminLoginPage from "./pages/AdminLoginPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminAcervoPage from "./pages/AdminAcervoPage";
+import AdminVideosPage from "./pages/AdminVideosPage";
+import AdminArticlesPage from "./pages/AdminArticlesPage";
+import AdminGeminiPage from "./pages/AdminGeminiPage";
+import AdminSecurityPage from "./pages/AdminSecurityPage";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
+import AdminLayout from "./components/AdminLayout";
+
 const queryClient = new QueryClient();
 
 const App = () => (
