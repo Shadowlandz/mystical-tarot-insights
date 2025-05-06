@@ -334,9 +334,9 @@ const TarotReading = ({ cards }: TarotReadingProps) => {
           <div>
             <label className="block text-sm font-medium mb-2">Área Secundária (opcional)</label>
             <Select 
-              value={secondaryArea?.id || ""} 
+              value={secondaryArea?.id || "none"} 
               onValueChange={(value) => {
-                if (value === "") {
+                if (value === "none") {
                   setSecondaryArea(undefined);
                 } else {
                   const area = tarotAreas.find(a => a.id === value);
@@ -348,7 +348,7 @@ const TarotReading = ({ cards }: TarotReadingProps) => {
                 <SelectValue placeholder="Selecione a área secundária (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma</SelectItem>
+                <SelectItem value="none">Nenhuma</SelectItem>
                 {tarotAreas
                   .filter(area => area.id !== primaryArea?.id)
                   .map((area) => (
