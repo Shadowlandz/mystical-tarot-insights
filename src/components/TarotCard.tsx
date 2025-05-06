@@ -1,18 +1,25 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { TarotCardType } from "@/data/tarotData";
 
 export interface TarotCardProps {
-  id: number;
-  name: string;
-  image: string;
+  card?: TarotCardType;
+  id?: number;
+  name?: string;
+  image?: string;
   isRevealed?: boolean;
   onClick?: () => void;
   className?: string;
 }
 
-export default function TarotCard({ id, name, image, isRevealed = false, onClick, className }: TarotCardProps) {
+export default function TarotCard({ id, name, image, isRevealed = false, onClick, className, card }: TarotCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  
+  // Use card properties if a card object is provided
+  const cardId = card?.id || id;
+  const cardName = card?.name || name;
+  const cardImage = card?.image || image;
   
   return (
     <div 
@@ -36,14 +43,14 @@ export default function TarotCard({ id, name, image, isRevealed = false, onClick
         
         <div className="absolute backface-hidden w-full h-full rotate-y-180 mystic-card overflow-hidden">
           <img 
-            src={image} 
-            alt={name}
+            src={cardImage} 
+            alt={cardName}
             className="w-full h-full object-cover"
           />
           
           {(isRevealed || isHovered) && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-mystic-dark/90 to-transparent p-2 text-center">
-              <span className="text-sm font-mystical text-accent">{name}</span>
+              <span className="text-sm font-mystical text-accent">{cardName}</span>
             </div>
           )}
         </div>

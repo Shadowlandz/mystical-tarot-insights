@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useTarotAI } from "@/hooks/useTarotAI";
+import { tarotCards } from "@/data/tarotData";
 
 const TarotPage = () => {
   const [activeTab, setActiveTab] = useState("single");
@@ -64,7 +65,7 @@ const TarotPage = () => {
                       Ideal para perguntas simples ou orientação diária. A carta única representa a energia ou influência dominante na situação.
                     </p>
                   </div>
-                  <TarotReading cardCount={1} />
+                  <TarotReading cards={tarotCards} />
                 </TabsContent>
                 
                 <TabsContent value="three" className="mt-0">
@@ -74,7 +75,7 @@ const TarotPage = () => {
                       Uma leitura clássica que representa passado, presente e futuro, ou situação, ação e resultado.
                     </p>
                   </div>
-                  <TarotReading cardCount={3} />
+                  <TarotReading cards={tarotCards} />
                 </TabsContent>
                 
                 <TabsContent value="celtic" className="mt-0">
@@ -99,7 +100,7 @@ const TarotPage = () => {
                       Uma leitura detalhada com 10 cartas que explora múltiplos aspectos da sua situação e proporciona uma visão completa.
                     </p>
                   </div>
-                  <TarotReading cardCount={10} />
+                  <TarotReading cards={tarotCards} />
                 </TabsContent>
               </div>
             </Tabs>

@@ -1,32 +1,19 @@
 
 import { Outlet } from "react-router-dom";
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarInset,
-} from "@/components/ui/sidebar";
-import { AdminSidebarContent } from "./admin/layout/AdminSidebarContent";
-import { AdminHeader } from "./admin/layout/AdminHeader";
-import { useViewportDetection } from "./admin/layout/useViewportDetection";
+import { Sidebar } from "@/components/ui/sidebar";
+import { AdminSidebarContent } from "@/components/admin/layout/AdminSidebarContent";
 
 const AdminLayout = () => {
-  const { isMobileView } = useViewportDetection();
-
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-slate-50 dark:bg-slate-950">
-        <Sidebar variant="floating" className="shadow-md">
-          <AdminSidebarContent />
-        </Sidebar>
-
-        <SidebarInset className="pt-16 md:pt-0">
-          <AdminHeader isMobileView={isMobileView} />
-          <div className="container py-6">
-            <Outlet />
-          </div>
-        </SidebarInset>
+    <div className="flex min-h-screen">
+      <Sidebar className="hidden md:block">
+        <AdminSidebarContent />
+      </Sidebar>
+      
+      <div className="flex-1 p-8 md:ml-64">
+        <Outlet />
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 

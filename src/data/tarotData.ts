@@ -1,4 +1,3 @@
-
 export const tarotData = [
   {
     id: 0,
@@ -301,3 +300,15 @@ export const studyData = [
     link: "/acervo/6"
   }
 ];
+
+// Export the TarotCardType interface
+export interface TarotCardType {
+  id: number;
+  name: string;
+  image: string;
+  keywords: string[];
+  meanings: {
+    upright: string[];
+    reversed: string[];
+  };
+}
